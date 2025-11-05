@@ -29,23 +29,46 @@ A cross-platform desktop application for automated stock and options screening w
 
 ## Prerequisites
 
-- **Node.js**: Version 18.x or higher
+- **Node.js**: Version 18.x, 20.x, or 22.x LTS (⚠️ **NOT v23.x** - see [Windows Installation](#windows-specific-installation) below)
 - **npm**: Version 9.x or higher
 - **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
 - **Alpha Vantage API Key** (Optional): For fundamental data. Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+
+### Windows Additional Requirements
+
+- **Visual Studio Build Tools** (for native module compilation):
+  - Download from: https://visualstudio.microsoft.com/downloads/
+  - Select "Desktop development with C++" workload
+  - **OR** use the automated installer:
+    ```bash
+    npm install --global windows-build-tools
+    ```
 
 ## Installation
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd alpaca-trading-scanner
+git clone https://github.com/EnragedAntelope/autotrader.git
+cd autotrader
 ```
 
 ### 2. Install Dependencies
 
+**macOS/Linux:**
 ```bash
+npm install
+```
+
+**Windows:**
+```bash
+# Ensure you're using Node.js LTS (18.x, 20.x, or 22.x)
+node --version
+
+# If you have v23.x, downgrade to LTS first:
+# Download from: https://nodejs.org/en/download/
+
+# Then install dependencies
 npm install
 ```
 
@@ -173,6 +196,114 @@ alpaca-trading-scanner/
 **Manual Scan**: Open a profile and click "Run Scan Now"
 
 **Automated Scanning**: Enable scheduling on a profile and start the global scheduler
+
+## Troubleshooting
+
+### Windows-Specific Installation Issues
+
+#### Error: "C++20 or later required" during npm install
+
+**Problem**: You're using Node.js v23.x which requires C++20, but better-sqlite3 doesn't fully support it yet.
+
+**Solution**:
+1. **Downgrade to Node.js LTS** (Recommended):
+   - Uninstall Node.js v23.x
+   - Download Node.js 20.x LTS from https://nodejs.org/
+   - Install and verify: `node --version` (should show v20.x.x)
+   - Run `npm install` again
+
+2. **Alternative - Use NVM for Windows**:
+   ```bash
+   # Install nvm-windows from: https://github.com/coreybutler/nvm-windows
+   nvm install 20
+   nvm use 20
+   npm install
+   ```
+
+#### Error: "MSBuild.exe failed with exit code: 1"
+
+**Problem**: Missing Visual Studio Build Tools
+
+**Solution**:
+```bash
+# Option 1: Install build tools globally (run as Administrator)
+npm install --global windows-build-tools
+
+# Option 2: Manual installation
+# Download Visual Studio Build Tools from:
+# https://visualstudio.microsoft.com/downloads/
+# Select "Desktop development with C++" workload
+```
+
+#### Error: "EPERM: operation not permitted, rmdir"
+
+**Problem**: Windows file locking during installation
+
+**Solution**:
+```bash
+# Close all applications that might be using node_modules
+# Delete node_modules folder manually
+rmdir /s /q node_modules
+
+# Clear npm cache
+npm cache clean --force
+
+# Try installing again
+npm install
+```
+
+#### Still Having Issues?
+
+If you continue to have problems with better-sqlite3 on Windows:
+
+1. **Check Node.js version**: Must be 18.x, 20.x, or 22.x (NOT 23.x)
+   ```bash
+   node --version
+   ```
+
+2. **Verify Visual Studio Build Tools**:
+   ```bash
+   npm config get msvs_version
+   ```
+
+3. **Try installing better-sqlite3 separately**:
+   ```bash
+   npm install better-sqlite3@9.2.2 --build-from-source
+   ```
+
+4. **Report the issue**: If none of these work, please open an issue at:
+   https://github.com/EnragedAntelope/autotrader/issues
+
+### General Troubleshooting
+
+#### API Key Errors
+
+**Error**: "Missing Alpaca API credentials"
+
+**Solution**:
+- Verify `.env` file exists in project root
+- Check that key names match exactly (ALPACA_PAPER_API_KEY, etc.)
+- Ensure no extra spaces or quotes around keys
+- Restart the application after editing `.env`
+
+#### Database Errors
+
+**Error**: "Database access error"
+
+**Solution**:
+- Close the application completely
+- Delete the database file (location: user data directory)
+- Restart the application (database will be recreated)
+
+#### Market Data Not Loading
+
+**Error**: "Failed to get market data"
+
+**Solutions**:
+- Check internet connection
+- Verify API keys are valid
+- Check if you've exceeded Alpha Vantage rate limits (25/day)
+- Wait a few minutes and try again
 
 ## Phase 1 Status (Current)
 

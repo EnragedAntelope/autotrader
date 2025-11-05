@@ -6,6 +6,18 @@
   "author": "Your Name",
   "license": "MIT",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EnragedAntelope/autotrader.git"
+  },
+  "homepage": "https://github.com/EnragedAntelope/autotrader#readme",
+  "bugs": {
+    "url": "https://github.com/EnragedAntelope/autotrader/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0 <23.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
