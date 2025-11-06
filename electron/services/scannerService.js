@@ -1,5 +1,6 @@
 const alpacaService = require('./alpacaService');
 const dataService = require('./dataService');
+const RateLimiter = require('../utils/rateLimiter');
 
 /**
  * Scanner Service - Executes screening logic
@@ -7,11 +8,28 @@ const dataService = require('./dataService');
  */
 
 class ScannerService {
+  constructor() {
+    this.rateLimiter = null;
+  }
+
+  /**
+   * Initialize with database connection
+   */
+  initialize(db) {
+    if (!this.rateLimiter) {
+      this.rateLimiter = new RateLimiter(db);
+      console.log('ScannerService initialized with rate limiter');
+    }
+  }
+
   /**
    * Run a scan based on a profile
    */
   async runScan(profileId, db) {
     const startTime = Date.now();
+
+    // Initialize rate limiter if not already done
+    this.initialize(db);
 
     try {
       // Get the profile
@@ -175,9 +193,12 @@ class ScannerService {
     const needsTechnicals = this.requiresTechnicals(parameters);
 
     try {
-      // 1. Get quote data (always needed for price/volume)
-      const quote = await alpacaService.getQuote(symbol);
-      const bar = await alpacaService.getLatestBar(symbol);
+      // 1. Get quote and bar data with rate limiting
+      // Use Promise.all to fetch both in parallel but both are rate-limited
+      const [quote, bar] = await Promise.all([
+        this.rateLimiter.executeRequest('alpaca', () => alpacaService.getQuote(symbol)),
+        this.rateLimiter.executeRequest('alpaca', () => alpacaService.getLatestBar(symbol)),
+      ]);
 
       if (!quote || !bar) {
         return null;
@@ -203,7 +224,7 @@ class ScannerService {
         }
       }
 
-      // 3. Get technical indicators if needed
+      // 3. Get technical indicators if needed (uses rate-limited historical data)
       if (needsTechnicals) {
         const technicals = await this.getTechnicalIndicators(symbol, db);
         if (technicals) {
@@ -307,12 +328,14 @@ class ScannerService {
       return JSON.parse(cached.data);
     }
 
-    // Calculate from historical data
+    // Calculate from historical data with rate limiting
     try {
-      const bars = await alpacaService.getHistoricalBars(symbol, {
-        limit: 200, // Need 200 periods for SMA200
-        timeframe: '1Day',
-      });
+      const bars = await this.rateLimiter.executeRequest('alpaca', () =>
+        alpacaService.getHistoricalBars(symbol, {
+          limit: 200, // Need 200 periods for SMA200
+          timeframe: '1Day',
+        })
+      );
 
       if (!bars || bars.length < 14) {
         return null; // Not enough data

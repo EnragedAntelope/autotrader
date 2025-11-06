@@ -149,7 +149,12 @@ INSERT OR IGNORE INTO app_settings (key, value) VALUES
   ('sound_alerts', 'false'),
   ('scheduler_running', 'false'),
   ('default_order_type', 'limit'),
-  ('limit_price_offset_percent', '0.5');
+  ('limit_price_offset_percent', '0.5'),
+  -- Rate limit settings (user-configurable)
+  ('alpaca_rate_limit_per_minute', '10000'),  -- Default for paid plan
+  ('alpaca_rate_limit_per_day', 'null'),      -- No daily limit for Alpaca
+  ('alpha_vantage_rate_limit_per_minute', '5'),  -- Default for free tier
+  ('alpha_vantage_rate_limit_per_day', '25');    -- Default for free tier
 
 -- Closed Positions (Historical tracking)
 CREATE TABLE IF NOT EXISTS closed_positions (
