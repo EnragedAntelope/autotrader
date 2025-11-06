@@ -1,0 +1,14 @@
+# Example .npmrc configuration for this project
+# Copy this file to .npmrc and customize for your system
+
+# If you have Python 3.13 but need 3.12 for node-gyp:
+# 1. Download portable Python 3.12 from https://www.python.org/downloads/
+# 2. Extract to a folder (e.g., C:\python312\)
+# 3. Uncomment and update the path below:
+
+# python=C:\python312\python.exe
+
+# On Linux/Mac, you might use:
+# python=/usr/local/bin/python3.12
+
+# This configuration only affects THIS project, not your system-wide Python.
