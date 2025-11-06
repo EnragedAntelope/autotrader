@@ -410,6 +410,147 @@ class AlpacaService {
       throw error;
     }
   }
+
+  /**
+   * Get option contracts for an underlying symbol
+   * @param {string} underlying - The underlying symbol (e.g., 'AAPL')
+   * @param {Object} filters - Optional filters
+   * @param {string} filters.type - 'call' or 'put'
+   * @param {Date} filters.expiration_date_gte - Min expiration date
+   * @param {Date} filters.expiration_date_lte - Max expiration date
+   * @param {number} filters.strike_price_gte - Min strike price
+   * @param {number} filters.strike_price_lte - Max strike price
+   */
+  async getOptionContracts(underlying, filters = {}) {
+    try {
+      // Alpaca options API endpoint
+      // Format: GET /v2/options/contracts?underlying_symbols=AAPL&type=call
+      const params = {
+        underlying_symbols: underlying,
+        status: 'active',
+        ...filters,
+      };
+
+      // Note: The @alpacahq/alpaca-trade-api package may not have direct option methods yet
+      // We'll use the REST API directly via axios
+      const axios = require('axios');
+      const baseUrl = this.mode === 'paper'
+        ? 'https://paper-api.alpaca.markets'
+        : 'https://api.alpaca.markets';
+
+      const apiKey = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_API_KEY
+        : process.env.ALPACA_LIVE_API_KEY;
+
+      const apiSecret = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_SECRET_KEY
+        : process.env.ALPACA_LIVE_SECRET_KEY;
+
+      const response = await axios.get(`${baseUrl}/v2/options/contracts`, {
+        params,
+        headers: {
+          'APCA-API-KEY-ID': apiKey,
+          'APCA-API-SECRET-KEY': apiSecret,
+        },
+      });
+
+      return response.data.option_contracts || [];
+    } catch (error) {
+      console.error(`Error getting option contracts for ${underlying}:`, error);
+      // If options API not available, return empty array
+      if (error.response && error.response.status === 404) {
+        console.warn('Options API not available for this account');
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get option chain with Greeks for a specific underlying
+   * @param {string} underlying - The underlying symbol
+   * @param {Object} options - Query options
+   * @param {Date} options.expiration - Specific expiration date
+   */
+  async getOptionChain(underlying, options = {}) {
+    try {
+      const axios = require('axios');
+      const baseUrl = this.mode === 'paper'
+        ? 'https://data.alpaca.markets'
+        : 'https://data.alpaca.markets';
+
+      const apiKey = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_API_KEY
+        : process.env.ALPACA_LIVE_API_KEY;
+
+      const apiSecret = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_SECRET_KEY
+        : process.env.ALPACA_LIVE_SECRET_KEY;
+
+      const params = {
+        underlying_symbol: underlying,
+        ...options,
+      };
+
+      const response = await axios.get(`${baseUrl}/v1beta1/options/snapshots/${underlying}`, {
+        params,
+        headers: {
+          'APCA-API-KEY-ID': apiKey,
+          'APCA-API-SECRET-KEY': apiSecret,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting option chain for ${underlying}:`, error);
+      if (error.response && error.response.status === 404) {
+        console.warn('Option chain data not available for this account/symbol');
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get latest option quote with Greeks
+   * @param {string} optionSymbol - The option contract symbol
+   */
+  async getOptionQuote(optionSymbol) {
+    try {
+      const axios = require('axios');
+      const baseUrl = 'https://data.alpaca.markets';
+
+      const apiKey = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_API_KEY
+        : process.env.ALPACA_LIVE_API_KEY;
+
+      const apiSecret = this.mode === 'paper'
+        ? process.env.ALPACA_PAPER_SECRET_KEY
+        : process.env.ALPACA_LIVE_SECRET_KEY;
+
+      const response = await axios.get(`${baseUrl}/v1beta1/options/snapshots/${optionSymbol}`, {
+        headers: {
+          'APCA-API-KEY-ID': apiKey,
+          'APCA-API-SECRET-KEY': apiSecret,
+        },
+      });
+
+      const snapshot = response.data.snapshot;
+      return {
+        symbol: optionSymbol,
+        latest_trade: snapshot.latestTrade,
+        latest_quote: snapshot.latestQuote,
+        greeks: snapshot.greeks,
+        implied_volatility: snapshot.impliedVolatility,
+      };
+    } catch (error) {
+      console.error(`Error getting option quote for ${optionSymbol}:`, error);
+      if (error.response && error.response.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
