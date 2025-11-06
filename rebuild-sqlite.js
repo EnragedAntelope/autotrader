@@ -2,19 +2,59 @@
 /**
  * Helper script to rebuild better-sqlite3 for Electron
  * Checks Python version and provides helpful error messages
+ * Reads .npmrc for project-specific Python configuration
  */
 
 const { execSync } = require('child_process');
 const { platform } = require('os');
+const fs = require('fs');
+const path = require('path');
 
 console.log('============================================');
 console.log('  Rebuilding better-sqlite3 for Electron');
 console.log('============================================\n');
 
+// Function to read Python path from .npmrc
+function getPythonFromNpmrc() {
+  const npmrcPath = path.join(__dirname, '.npmrc');
+
+  if (!fs.existsSync(npmrcPath)) {
+    return null;
+  }
+
+  try {
+    const npmrcContent = fs.readFileSync(npmrcPath, 'utf8');
+    const lines = npmrcContent.split('\n');
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('python=')) {
+        const pythonPath = trimmed.substring('python='.length).trim();
+        return pythonPath;
+      }
+    }
+  } catch (error) {
+    console.warn('⚠ Warning: Could not read .npmrc file');
+  }
+
+  return null;
+}
+
+// Determine which Python to use
+let pythonCmd;
+const npmrcPython = getPythonFromNpmrc();
+
+if (npmrcPython) {
+  pythonCmd = `"${npmrcPython}"`;
+  console.log(`✓ Using Python from .npmrc: ${npmrcPython}\n`);
+} else {
+  pythonCmd = platform() === 'win32' ? 'python' : 'python3';
+  console.log('✓ Using system Python (no .npmrc configuration)\n');
+}
+
 // Check Python version
 console.log('Step 1: Checking Python version...');
 try {
-  const pythonCmd = platform() === 'win32' ? 'python' : 'python3';
   const version = execSync(`${pythonCmd} --version`, { encoding: 'utf8' }).trim();
   console.log(`✓ Found: ${version}`);
 
@@ -28,10 +68,11 @@ try {
       console.log('✓ Python version is compatible\n');
     } else if (major === 3 && minor === 13) {
       console.error('\n❌ ERROR: Python 3.13 is not supported by node-gyp yet!');
-      console.error('\nPlease install Python 3.12 from: https://www.python.org/downloads/');
-      console.error('\nWindows: After installing, set the PYTHON environment variable:');
-      console.error('  setx PYTHON "C:\\Python312\\python.exe" /M');
-      console.error('\nThen restart your terminal and run this script again.');
+      console.error('\n📝 SOLUTION: Create a .npmrc file in the project root with:');
+      console.error('   python=C:\\python312\\python.exe');
+      console.error('\n   (Use the path to your Python 3.12 installation)');
+      console.error('\nAlternatively, install Python 3.12 from: https://www.python.org/downloads/');
+      console.error('\nSee .npmrc.example for a template.');
       process.exit(1);
     } else {
       console.warn(`⚠ Warning: Python ${major}.${minor} may not be compatible. Supported: Python 3.8-3.12\n`);
@@ -39,7 +80,14 @@ try {
   }
 } catch (error) {
   console.error('❌ Python not found!');
-  console.error('Please install Python 3.8-3.12 from: https://www.python.org/downloads/');
+  if (npmrcPython) {
+    console.error(`\nThe Python path in .npmrc is invalid: ${npmrcPython}`);
+    console.error('Please check that the path is correct and the file exists.');
+  } else {
+    console.error('\nPlease either:');
+    console.error('1. Install Python 3.8-3.12 from: https://www.python.org/downloads/');
+    console.error('2. Or create a .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
+  }
   process.exit(1);
 }
 
