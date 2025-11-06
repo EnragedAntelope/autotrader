@@ -353,7 +353,7 @@ function ScreenerBuilder() {
                     onChange={(e) => handleParameterChange('macdSignal', e.target.value)}
                   >
                     <MenuItem value="any">Any</MenuItem>
-                    <MenuItem value="bullish">Bullish (MACD > Signal)</MenuItem>
+                    <MenuItem value="bullish">Bullish (MACD &gt; Signal)</MenuItem>
                     <MenuItem value="bearish">Bearish (MACD &lt; Signal)</MenuItem>
                   </Select>
                 </FormControl>
