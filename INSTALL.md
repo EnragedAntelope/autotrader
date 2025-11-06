@@ -42,7 +42,7 @@ node --version
 npm install
 ```
 
-If you get C++20 or MSBuild errors, see [Troubleshooting](#troubleshooting-windows-installation-errors) below.
+**Note**: If you have Python 3.13, you might see warnings during install but npm install should complete successfully. If you later get a MODULE_VERSION error when launching the app, see [Troubleshooting](#error-node_module_version-115-vs-135-electron-launch) below.
 
 ### 3. Set Up Environment Variables
 
@@ -156,6 +156,55 @@ npm install --global windows-build-tools
 # Then try again
 npm install
 ```
+
+### Error: "NODE_MODULE_VERSION 115 vs 135" (Electron Launch)
+
+**Cause**: better-sqlite3 was compiled for Node.js but needs to be rebuilt for Electron
+
+**Symptoms**:
+```
+The module '...\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 115. This version requires NODE_MODULE_VERSION 135.
+```
+
+**Fix - Option 1 (Simplest)**:
+```bash
+# Just rebuild better-sqlite3 for Electron
+npx electron-rebuild -f -w better-sqlite3
+```
+
+**Fix - Option 2 (If Option 1 fails due to Python version)**:
+
+If you have Python 3.13 (which node-gyp doesn't support yet), install Python 3.12:
+
+1. Download Python 3.12.x from https://www.python.org/downloads/windows/
+2. Install it
+3. Set the PYTHON environment variable:
+   ```cmd
+   # In Command Prompt (run as Administrator)
+   setx PYTHON "C:\Python312\python.exe" /M
+   ```
+4. Restart your terminal and try again:
+   ```bash
+   npx electron-rebuild -f -w better-sqlite3
+   ```
+
+**Fix - Option 3 (Clean reinstall)**:
+```bash
+# Remove everything and start fresh
+rmdir /s /q node_modules
+del /q package-lock.json
+npm cache clean --force
+
+# Reinstall
+npm install
+
+# Then rebuild for Electron
+npx electron-rebuild -f -w better-sqlite3
+```
+
+**Note**: This error only occurs when launching the Electron app, not during `npm install`.
 
 ### Error: "EPERM: operation not permitted, rmdir"
 
