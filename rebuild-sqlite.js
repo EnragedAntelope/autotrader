@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * Helper script to rebuild better-sqlite3 for Electron
- * Checks Python version and provides helpful error messages
- * Reads .npmrc for project-specific Python configuration
+ * Uses npm rebuild with Electron headers (no @electron/rebuild dependency)
  */
 
 const { execSync } = require('child_process');
@@ -20,8 +19,6 @@ if (!fs.existsSync(nodeModulesPath)) {
   console.error('❌ ERROR: node_modules not found!\n');
   console.error('You need to install dependencies first:');
   console.error('  npm install\n');
-  console.error('Then run this script again:');
-  console.error('  npm run rebuild\n');
   process.exit(1);
 }
 
@@ -31,17 +28,26 @@ if (!fs.existsSync(electronPath)) {
   console.error('❌ ERROR: Electron not found!\n');
   console.error('You need to install dependencies first:');
   console.error('  npm install\n');
-  console.error('Then run this script again:');
-  console.error('  npm run rebuild\n');
   process.exit(1);
 }
 
 console.log('✓ node_modules and Electron found\n');
 
-// Function to read Python path from .npmrc
+// Get Electron version
+let electronVersion;
+try {
+  const packagePath = path.join(electronPath, 'package.json');
+  const electronPkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  electronVersion = electronPkg.version;
+  console.log(`✓ Electron version: ${electronVersion}\n`);
+} catch (error) {
+  console.error('❌ Could not read Electron version');
+  process.exit(1);
+}
+
+// Check Python (for informational purposes)
 function getPythonFromNpmrc() {
   const npmrcPath = path.join(__dirname, '.npmrc');
-
   if (!fs.existsSync(npmrcPath)) {
     return null;
   }
@@ -53,36 +59,29 @@ function getPythonFromNpmrc() {
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed.startsWith('python=')) {
-        const pythonPath = trimmed.substring('python='.length).trim();
-        return pythonPath;
+        return trimmed.substring('python='.length).trim();
       }
     }
   } catch (error) {
-    console.warn('⚠ Warning: Could not read .npmrc file');
+    // Ignore
   }
 
   return null;
 }
 
-// Determine which Python to use
-let pythonCmd;
 const npmrcPython = getPythonFromNpmrc();
-
 if (npmrcPython) {
-  pythonCmd = `"${npmrcPython}"`;
-  console.log(`✓ Using Python from .npmrc: ${npmrcPython}\n`);
+  console.log(`✓ Using Python from .npmrc: ${npmrcPython}`);
 } else {
-  pythonCmd = platform() === 'win32' ? 'python' : 'python3';
-  console.log('✓ Using system Python (no .npmrc configuration)\n');
+  console.log('ℹ No .npmrc Python configuration found (using system Python)');
 }
 
-// Check Python version
-console.log('Step 1: Checking Python version...');
+console.log('\nStep 1: Checking Python version...');
 try {
+  const pythonCmd = npmrcPython ? `"${npmrcPython}"` : (platform() === 'win32' ? 'python' : 'python3');
   const version = execSync(`${pythonCmd} --version`, { encoding: 'utf8' }).trim();
   console.log(`✓ Found: ${version}`);
 
-  // Extract version number
   const match = version.match(/Python (\d+)\.(\d+)/);
   if (match) {
     const major = parseInt(match[1]);
@@ -91,35 +90,38 @@ try {
     if (major === 3 && minor >= 8 && minor <= 12) {
       console.log('✓ Python version is compatible\n');
     } else if (major === 3 && minor === 13) {
-      console.error('\n❌ ERROR: Python 3.13 is not supported by node-gyp yet!');
-      console.error('\n📝 SOLUTION: Create a .npmrc file in the project root with:');
-      console.error('   python=C:\\python312\\python.exe');
-      console.error('\n   (Use the path to your Python 3.12 installation)');
-      console.error('\nAlternatively, install Python 3.12 from: https://www.python.org/downloads/');
-      console.error('\nSee .npmrc.example for a template.');
-      process.exit(1);
+      console.error('\n⚠ WARNING: Python 3.13 detected!');
+      console.error('node-gyp supports Python 3.8-3.12 only.');
+      console.error('\nTo use Python 3.12 for this project only:');
+      console.error('1. Download portable Python 3.12');
+      console.error('2. Create .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
+      console.error('\nProceeding anyway (may fail)...\n');
     } else {
-      console.warn(`⚠ Warning: Python ${major}.${minor} may not be compatible. Supported: Python 3.8-3.12\n`);
+      console.warn(`⚠ Warning: Python ${major}.${minor} detected. Supported: 3.8-3.12\n`);
     }
   }
 } catch (error) {
-  console.error('❌ Python not found!');
-  if (npmrcPython) {
-    console.error(`\nThe Python path in .npmrc is invalid: ${npmrcPython}`);
-    console.error('Please check that the path is correct and the file exists.');
-  } else {
-    console.error('\nPlease either:');
-    console.error('1. Install Python 3.8-3.12 from: https://www.python.org/downloads/');
-    console.error('2. Or create a .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
-  }
-  process.exit(1);
+  console.warn('⚠ Warning: Could not check Python version');
+  console.warn('If rebuild fails, ensure Python 3.8-3.12 is installed\n');
 }
 
-// Rebuild better-sqlite3
-console.log('Step 2: Rebuilding better-sqlite3...');
+// Rebuild better-sqlite3 using npm rebuild with Electron headers
+console.log('Step 2: Rebuilding better-sqlite3 for Electron...');
+console.log('This uses npm rebuild (not @electron/rebuild) to avoid dependency issues.\n');
+
 try {
-  execSync('npx @electron/rebuild -f -w better-sqlite3', {
+  // Set environment variables for the rebuild
+  const env = { ...process.env };
+  env.npm_config_target = electronVersion;
+  env.npm_config_arch = process.arch;
+  env.npm_config_target_arch = process.arch;
+  env.npm_config_dist_url = 'https://electronjs.org/headers';
+  env.npm_config_runtime = 'electron';
+  env.npm_config_build_from_source = 'true';
+
+  execSync('npm rebuild better-sqlite3 --build-from-source', {
     stdio: 'inherit',
+    env,
     shell: true
   });
 
@@ -132,10 +134,12 @@ try {
   console.error('\n============================================');
   console.error('  ❌ Rebuild failed!');
   console.error('============================================\n');
-  console.error('Common issues:');
+  console.error('Common causes:');
   console.error('1. Python version incompatible (need 3.8-3.12, not 3.13)');
   console.error('2. Visual Studio Build Tools not installed (Windows)');
   console.error('3. node-gyp not configured correctly');
+  console.error('\nFor Python 3.13 users:');
+  console.error('  Create .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
   console.error('\nSee INSTALL.md for detailed troubleshooting.');
   process.exit(1);
 }
