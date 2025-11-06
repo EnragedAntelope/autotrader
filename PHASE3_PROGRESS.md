@@ -1,11 +1,11 @@
 # Phase 3 Implementation Progress
 
 **Date**: 2025-11-06
-**Status**: ScreenerBuilder, Scheduler & Enhanced Settings Complete! 🎉
+**Status**: Nearly Complete - 4 of 5 Components Done! 🎉
 
 ---
 
-## ✅ Completed Components (3 of 5)
+## ✅ Completed Components (4 of 5)
 
 ### 1. Options API Support (alpacaService.js)
 
@@ -299,9 +299,155 @@ All methods exposed to renderer process:
 
 ---
 
+### 5. Scan Results Viewer (650+ lines)
+
+**Complete, comprehensive scan results viewing and trading interface with:**
+
+#### Features:
+- ✅ Results table with filtering and sorting
+- ✅ Pagination support (10/25/50/100 rows per page)
+- ✅ Multiple filter options
+- ✅ Quick trade execution
+- ✅ Detailed result view dialog
+- ✅ Market data display
+
+#### Filtering Capabilities:
+1. **Profile Filter**
+   - Dropdown selector showing all profiles
+   - "All Profiles" option to view all results
+
+2. **Symbol Filter**
+   - Text search (e.g., "AAPL")
+   - Partial match support (SQL LIKE)
+
+3. **Asset Type Filter**
+   - All Types / Stock / Call Option / Put Option
+   - Color-coded chips in table
+
+4. **Date Range Filters**
+   - From Date picker
+   - To Date picker
+   - Filter by scan timestamp
+
+5. **Apply/Clear Controls**
+   - Apply Filters button
+   - Clear Filters button (resets all)
+
+#### Results Table Display:
+- Timestamp column (formatted as local date/time)
+- Profile name column (with fallback to "Profile #X")
+- Symbol column (bold text)
+- Asset Type column (color-coded chips: blue=stock, green=call, red=put)
+- Price column (formatted as currency)
+- Change column (with trend icons and color: green=up, red=down)
+- Volume column (formatted with thousand separators)
+- Actions column (View Details, Quick Trade buttons)
+
+#### Detail View Dialog:
+**Shows comprehensive market data for selected result:**
+
+1. **Header Section**
+   - Symbol (large heading)
+   - Profile name
+   - Scan timestamp
+   - Asset type chip
+
+2. **Market Data Card**
+   - Current price
+   - Price change (% with color coding)
+   - Trading volume
+
+3. **Fundamentals Card** (if available)
+   - P/E Ratio
+   - Market Cap (in billions)
+   - Sector
+   - Beta
+
+4. **Technical Indicators Card** (if available)
+   - RSI
+   - MACD
+   - SMA 20
+   - SMA 50
+
+5. **Dialog Actions**
+   - Close button
+   - Trade button (opens quick trade dialog)
+
+#### Quick Trade Dialog:
+- Symbol display
+- Current price display
+- Quantity input (number field, min: 1)
+- Estimated cost calculation (price × quantity)
+- Cancel button
+- "Buy Now (Market Order)" button with loading state
+
+#### User Experience:
+- Refresh button to reload results
+- Loading states on all async operations
+- Success/error alerts (auto-dismiss after 3 seconds)
+- Empty state message when no results
+- Responsive table layout
+- Hover effects on table rows
+- Tooltip hints on action buttons
+
+#### Backend Support:
+**New IPC Handler (main.js):**
+- `get-all-scan-results` - Flexible query with multiple filters
+  - Supports: profileId, symbol, fromDate, toDate, assetType, limit
+  - LEFT JOIN with screening_profiles for profile names
+  - Dynamic SQL query building
+  - Returns up to 500 results, ordered by timestamp DESC
+
+**Preload Bridge (preload.js):**
+- ✅ `window.electron.getAllScanResults(filters)`
+
+**TypeScript Types:**
+- Added ScanResultFilters interface
+- Extended ElectronAPI with getAllScanResults method
+- Extended ScanResult type with optional profile_name field
+
+#### Security Enhancement:
+**Content Security Policy (CSP) Added**
+- Fixed "Insecure Content-Security-Policy" Electron warning
+- Implemented via webRequest.onHeadersReceived in main.js
+- Separate policies for development and production:
+
+**Development CSP:**
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173;
+style-src 'self' 'unsafe-inline' http://localhost:5173;
+img-src 'self' data: https:;
+font-src 'self' data:;
+connect-src 'self' http://localhost:5173 ws://localhost:5173
+  https://paper-api.alpaca.markets https://api.alpaca.markets
+  https://data.alpaca.markets https://www.alphavantage.co;
+frame-src 'none';
+```
+
+**Production CSP:**
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: https:;
+font-src 'self' data:;
+connect-src 'self' https://paper-api.alpaca.markets
+  https://api.alpaca.markets https://data.alpaca.markets
+  https://www.alphavantage.co;
+frame-src 'none';
+```
+
+**Navigation Integration:**
+- Added "Scan Results" menu item with Search icon
+- Positioned between Scheduler and Trade History
+- Updated View type to include 'results'
+
+---
+
 ## 🧪 Ready to Test
 
-All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **fully functional and ready to test**!
+All four major components (ScreenerBuilder, Scheduler, Enhanced Settings, and Scan Results Viewer) are **fully functional and ready to test**!
 
 ### How to Test:
 
@@ -376,6 +522,22 @@ All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **f
    - Click "Refresh" button to reload settings
    - Verify all changes persisted correctly
 
+12. **Navigate to "Scan Results" in the menu**
+
+13. **Test Scan Results Viewer:**
+   - View all scan results from all profiles
+   - Use Profile filter dropdown to filter by specific profile
+   - Use Symbol search to find specific stocks/options (e.g., "AAPL")
+   - Use Asset Type filter (Stock, Call Option, Put Option)
+   - Use Date Range filters (From Date, To Date)
+   - Click "Apply Filters" to refresh results
+   - Click "Clear Filters" to reset
+   - Change pagination (rows per page: 10/25/50/100)
+   - Click info icon to view detailed market data
+   - Click trade icon to open quick trade dialog
+   - Test trade execution (will use paper trading mode)
+   - Verify success/error alerts appear
+
 ### Known Limitations:
 - **Scanner backend**: Stock screening is implemented, options screening logic needs to be added
 - **Rate limiting**: Scanner respects API rate limits configured in Phase 2
@@ -384,15 +546,9 @@ All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **f
 
 ---
 
-## 📋 Remaining Phase 3 Tasks (2 of 5)
+## 📋 Remaining Phase 3 Tasks (1 of 5)
 
-### 1. Scan Results Viewer (Next Priority)
-- Results table with filtering/sorting
-- Match details and market data
-- Quick trade execution
-- Historical results browser
-
-### 2. Options Screening Logic (Backend)
+### 1. Options Screening Logic (Backend) - Final Task!
 - Implement option-specific filtering in scannerService.js
 - Integrate with getOptionContracts()
 - Filter by Greeks, strike, expiration
@@ -410,10 +566,12 @@ All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **f
 - **ScreenerBuilder Component**: 1 component, 902 lines
 - **Scheduler Component**: 1 component, 420 lines
 - **Enhanced Settings Component**: 1 component, 412 lines
-- **Backend IPC Handlers**: 4 new handlers in main.js, ~60 lines
-- **Total Phase 3 Code**: ~1,935 lines added
-- **Files Modified**: 6 (alpacaService.js, ScreenerBuilder.tsx, App.tsx, Settings.tsx, main.js, preload.js, types/index.ts)
-- **Files Created**: 2 (Scheduler.tsx, PHASE3_PROGRESS.md)
+- **Scan Results Viewer Component**: 1 component, 654 lines
+- **Backend IPC Handlers**: 5 new handlers in main.js, ~110 lines
+- **Content Security Policy**: CSP headers implementation, ~30 lines
+- **Total Phase 3 Code**: ~2,670 lines added
+- **Files Modified**: 8 (alpacaService.js, ScreenerBuilder.tsx, App.tsx, Settings.tsx, main.js, preload.js, types/index.ts, README.md)
+- **Files Created**: 3 (Scheduler.tsx, ScanResults.tsx, PHASE3_PROGRESS.md)
 
 ---
 
@@ -425,8 +583,11 @@ All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **f
 2. ~~Fix any issues discovered~~ ✅ Fixed JSX error
 3. ~~Implement Scheduler UI component~~ ✅ Complete!
 4. ~~Enhanced Settings UI (rate limits configuration)~~ ✅ Complete!
-5. **Next:** Scan Results Viewer
-6. Then, Options screening backend logic
+5. ~~Scan Results Viewer~~ ✅ Complete!
+6. ~~Fix security warnings (CSP)~~ ✅ Complete!
+7. **Final:** Options screening backend logic
+
+**Phase 3 is 80% complete! Only options screening logic remains.**
 
 ---
 
@@ -438,7 +599,9 @@ All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **f
 4. **34f6c6d** - feat(phase3): Implement Scheduler UI component with full management
 5. **fa4fbb5** - docs(phase3): Update progress with Scheduler completion
 6. **fdb2c33** - feat(phase3): Implement Enhanced Settings UI with rate limit configuration
-7. **[this commit]** - docs(phase3): Update progress with Enhanced Settings completion
+7. **1f2b3ec** - docs(phase3): Update progress with Enhanced Settings completion
+8. **53e48a5** - feat(phase3): Implement Scan Results Viewer and fix security issues
+9. **[this commit]** - docs(phase3): Update progress with Scan Results Viewer completion
 
 ---
 
@@ -491,6 +654,23 @@ Settings.tsx
 └── Save/Refresh controls
 ```
 
+**ScanResults.tsx**
+```
+ScanResults.tsx
+├── State management (results, profiles, filters, pagination, dialogs)
+├── useEffect - Load profiles and results on mount
+├── Filter section (profile, symbol, asset type, date range)
+├── Results table with pagination
+│   ├── Timestamp, profile, symbol, asset type columns
+│   ├── Price, change, volume with formatting
+│   └── Actions: View Details, Quick Trade
+├── Detail Dialog
+│   ├── Market data card
+│   ├── Fundamentals card (conditional)
+│   └── Technical indicators card (conditional)
+└── Trade Dialog with quantity input and cost calculation
+```
+
 ### Material-UI Components Used
 
 **ScreenerBuilder:**
@@ -509,6 +689,13 @@ Settings.tsx
 - Switch, FormControlLabel, RadioGroup, Radio
 - Alert, Dialog, Button
 
+**ScanResults:**
+- Table, TableContainer, TableHead, TableBody, TableRow, TableCell
+- TablePagination, Paper, Button, IconButton
+- Dialog, DialogTitle, DialogContent, DialogActions
+- Card, CardContent, Grid, Chip, Tooltip
+- Alert, Typography, Box
+
 ### Styling
 - Uses Material-UI sx prop for inline styles
 - Responsive Grid layout (xs={6}, xs={12})
@@ -519,6 +706,8 @@ Settings.tsx
 
 **End of Phase 3 Progress Report**
 
-✅ **3 of 5 Major Components Complete!**
+✅ **4 of 5 Major Components Complete! (80% Done)**
 
-Ready to test ScreenerBuilder, Scheduler, and Enhanced Settings! 🎉
+Ready to test ScreenerBuilder, Scheduler, Enhanced Settings, and Scan Results Viewer! 🎉
+
+**Only options screening backend logic remains to complete Phase 3!**

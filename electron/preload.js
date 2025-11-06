@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Scanner Operations
   runScan: (profileId) => ipcRenderer.invoke('run-scan', profileId),
   getScanResults: (profileId, limit) => ipcRenderer.invoke('get-scan-results', profileId, limit),
+  getAllScanResults: (filters) => ipcRenderer.invoke('get-all-scan-results', filters),
 
   // Trade Operations
   executeTrade: (tradeParams) => ipcRenderer.invoke('execute-trade', tradeParams),

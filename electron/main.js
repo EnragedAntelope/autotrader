@@ -33,8 +33,38 @@ function createWindow() {
     icon: path.join(__dirname, '../assets/icon.png'),
   });
 
+  // Set Content Security Policy
+  const isDev = process.env.NODE_ENV === 'development';
+
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          isDev
+            ? // Development CSP - allows Vite HMR with unsafe-eval
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173; " +
+              "style-src 'self' 'unsafe-inline' http://localhost:5173; " +
+              "img-src 'self' data: https:; " +
+              "font-src 'self' data:; " +
+              "connect-src 'self' http://localhost:5173 ws://localhost:5173 https://paper-api.alpaca.markets https://api.alpaca.markets https://data.alpaca.markets https://www.alphavantage.co; " +
+              "frame-src 'none';"
+            : // Production CSP - more restrictive, no unsafe-eval
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline'; " +
+              "style-src 'self' 'unsafe-inline'; " +
+              "img-src 'self' data: https:; " +
+              "font-src 'self' data:; " +
+              "connect-src 'self' https://paper-api.alpaca.markets https://api.alpaca.markets https://data.alpaca.markets https://www.alphavantage.co; " +
+              "frame-src 'none';"
+        ]
+      }
+    });
+  });
+
   // Load the app
-  if (process.env.NODE_ENV === 'development') {
+  if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
@@ -164,6 +194,54 @@ function setupIPC() {
       ORDER BY scan_timestamp DESC
       LIMIT ?
     `).all(profileId, limit);
+
+    return results.map(r => ({
+      ...r,
+      parameters_snapshot: JSON.parse(r.parameters_snapshot),
+      market_data_snapshot: JSON.parse(r.market_data_snapshot),
+    }));
+  });
+
+  ipcMain.handle('get-all-scan-results', (event, filters = {}) => {
+    const { profileId, symbol, fromDate, toDate, assetType, limit = 500 } = filters;
+
+    let query = `
+      SELECT sr.*, sp.name as profile_name
+      FROM scan_results sr
+      LEFT JOIN screening_profiles sp ON sr.profile_id = sp.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (profileId) {
+      query += ' AND sr.profile_id = ?';
+      params.push(profileId);
+    }
+
+    if (symbol) {
+      query += ' AND sr.symbol LIKE ?';
+      params.push(`%${symbol}%`);
+    }
+
+    if (fromDate) {
+      query += ' AND sr.scan_timestamp >= ?';
+      params.push(fromDate);
+    }
+
+    if (toDate) {
+      query += ' AND sr.scan_timestamp <= ?';
+      params.push(toDate);
+    }
+
+    if (assetType) {
+      query += ' AND sr.asset_type = ?';
+      params.push(assetType);
+    }
+
+    query += ' ORDER BY sr.scan_timestamp DESC LIMIT ?';
+    params.push(limit);
+
+    const results = db.prepare(query).all(...params);
 
     return results.map(r => ({
       ...r,

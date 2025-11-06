@@ -32,6 +32,7 @@ import { fetchAccountInfo, fetchTradingMode } from './store/accountSlice';
 import Dashboard from './components/Dashboard';
 import ScreenerBuilder from './components/ScreenerBuilder';
 import Scheduler from './components/Scheduler';
+import ScanResults from './components/ScanResults';
 import TradeHistory from './components/TradeHistory';
 import RiskManagement from './components/RiskManagement';
 import Settings from './components/Settings';
@@ -39,7 +40,7 @@ import NotificationCenter from './components/NotificationCenter';
 
 const drawerWidth = 240;
 
-type View = 'dashboard' | 'screener' | 'scheduler' | 'trades' | 'risk' | 'settings';
+type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'risk' | 'settings';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -66,6 +67,7 @@ function App() {
     { id: 'dashboard' as View, label: 'Dashboard', icon: <DashboardIcon /> },
     { id: 'screener' as View, label: 'Screener Builder', icon: <FilterIcon /> },
     { id: 'scheduler' as View, label: 'Scheduler', icon: <ScheduleIcon /> },
+    { id: 'results' as View, label: 'Scan Results', icon: <SearchIcon /> },
     { id: 'trades' as View, label: 'Trade History', icon: <TradingIcon /> },
     { id: 'risk' as View, label: 'Risk Management', icon: <AccountIcon /> },
     { id: 'settings' as View, label: 'Settings', icon: <SettingsIcon /> },
@@ -84,6 +86,8 @@ function App() {
         return <ScreenerBuilder />;
       case 'scheduler':
         return <Scheduler />;
+      case 'results':
+        return <ScanResults />;
       case 'trades':
         return <TradeHistory />;
       case 'risk':
