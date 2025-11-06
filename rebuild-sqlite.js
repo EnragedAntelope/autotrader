@@ -14,6 +14,30 @@ console.log('============================================');
 console.log('  Rebuilding better-sqlite3 for Electron');
 console.log('============================================\n');
 
+// Check if node_modules exists
+const nodeModulesPath = path.join(__dirname, 'node_modules');
+if (!fs.existsSync(nodeModulesPath)) {
+  console.error('❌ ERROR: node_modules not found!\n');
+  console.error('You need to install dependencies first:');
+  console.error('  npm install\n');
+  console.error('Then run this script again:');
+  console.error('  npm run rebuild\n');
+  process.exit(1);
+}
+
+// Check if Electron is installed
+const electronPath = path.join(__dirname, 'node_modules', 'electron');
+if (!fs.existsSync(electronPath)) {
+  console.error('❌ ERROR: Electron not found!\n');
+  console.error('You need to install dependencies first:');
+  console.error('  npm install\n');
+  console.error('Then run this script again:');
+  console.error('  npm run rebuild\n');
+  process.exit(1);
+}
+
+console.log('✓ node_modules and Electron found\n');
+
 // Function to read Python path from .npmrc
 function getPythonFromNpmrc() {
   const npmrcPath = path.join(__dirname, '.npmrc');

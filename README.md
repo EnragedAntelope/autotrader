@@ -114,8 +114,14 @@ TRADING_MODE=paper
 **When do you need this?**
 - If you get a MODULE_VERSION error when running `npm run dev`
 
+**Important:** Run `npm install` first (step 2) before rebuilding!
+
 **Quick fix:**
 ```bash
+# Make sure dependencies are installed first
+npm install
+
+# Then rebuild
 npm run rebuild
 ```
 

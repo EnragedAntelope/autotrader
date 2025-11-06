@@ -12,3 +12,7 @@
 # python=/usr/local/bin/python3.12
 
 # This configuration only affects THIS project, not your system-wide Python.
+
+# NOTE: When running npm run rebuild, you may see deprecation warnings from
+# @electron/rebuild's dependencies. These are normal and can be safely ignored.
+# We cannot fix them as they are transitive dependencies.
