@@ -23,8 +23,7 @@
     "glob": "^11.0.0",
     "rimraf": "^6.0.1",
     "inflight": "npm:@nolyfill/inflight@latest",
-    "eslint": "^9.15.0",
-    "esbuild": "^0.24.3"
+    "eslint": "^9.15.0"
   },
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
