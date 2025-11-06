@@ -33,6 +33,12 @@ contextBridge.exposeInMainWorld('electron', {
   getRiskSettings: () => ipcRenderer.invoke('get-risk-settings'),
   updateRiskSettings: (settings) => ipcRenderer.invoke('update-risk-settings', settings),
 
+  // App Settings
+  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
+  getAppSetting: (key) => ipcRenderer.invoke('get-app-setting', key),
+  updateAppSetting: (key, value) => ipcRenderer.invoke('update-app-setting', key, value),
+  updateAppSettings: (settings) => ipcRenderer.invoke('update-app-settings', settings),
+
   // Scheduler Control
   startScheduler: () => ipcRenderer.invoke('start-scheduler'),
   stopScheduler: () => ipcRenderer.invoke('stop-scheduler'),

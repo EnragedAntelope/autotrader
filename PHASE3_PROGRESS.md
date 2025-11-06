@@ -1,11 +1,11 @@
 # Phase 3 Implementation Progress
 
 **Date**: 2025-11-06
-**Status**: ScreenerBuilder Component Complete & Ready to Test
+**Status**: ScreenerBuilder, Scheduler & Enhanced Settings Complete! 🎉
 
 ---
 
-## ✅ Completed Components
+## ✅ Completed Components (3 of 5)
 
 ### 1. Options API Support (alpacaService.js)
 
@@ -159,9 +159,149 @@ All methods exposed to renderer process:
 
 ---
 
+### 3. Scheduler UI Component (420+ lines)
+
+**Complete, functional scheduler management interface with:**
+
+#### Features:
+- ✅ Start/stop scheduler controls
+- ✅ Real-time status display
+- ✅ Scheduled profiles grid view
+- ✅ Manual scan triggers
+- ✅ Scan history viewer
+
+#### Scheduler Status Section:
+- Visual status indicator (RUNNING/STOPPED chip)
+- Active jobs counter
+- Large start/stop button
+  - Green "Start Scheduler" when stopped
+  - Red "Stop Scheduler" when running
+  - Disabled when no profiles scheduled
+- Info alert when no scheduled profiles exist
+
+#### Scheduled Profiles Grid:
+- Card-based grid layout (2 columns on desktop)
+- Each card shows:
+  - Profile name and asset type chip
+  - Schedule interval chip with clock icon
+  - Next run time estimate ("Next: ~15m")
+  - Market hours indicator
+  - Auto-execute warning chip
+  - "Run Now" button for manual execution
+  - Loading progress bar during scan
+- Cards update status in real-time
+- Running scans show "Running..." state
+
+#### Scan History List:
+- Recent 20 scans across all profiles
+- Success/error status icons (green checkmark / red X)
+- Relative timestamps ("5m ago", "2h ago", "1d ago")
+- Match count for successful scans
+- Error messages for failed scans
+- Sorted by timestamp (newest first)
+- Empty state with helpful message
+
+#### User Experience:
+- Refresh button in header
+- Auto-refresh status every 10 seconds
+- Success/error alerts (dismissible)
+- Loading states during operations
+- Disabled states for running scans
+- Tooltips on action buttons
+- Empty states with guidance
+
+#### Navigation Integration:
+- Added to main menu between Screener Builder and Trade History
+- Schedule icon in menu
+- Integrated into View type system
+
+---
+
+### 4. Enhanced Settings UI (412 lines)
+
+**Complete, functional settings management interface with:**
+
+#### Features:
+- ✅ Rate limit configuration for API services
+- ✅ Order execution preferences
+- ✅ Notification preferences
+- ✅ Theme settings
+- ✅ Save/refresh controls
+- ✅ Real-time validation and feedback
+
+#### Rate Limiting Configuration:
+1. **Alpaca API Rate Limits**
+   - Requests per minute configuration
+   - Helper text: "Default: 10,000 for paid plans, 200 for free tier"
+   - Info alert: "Alpaca has no daily limit"
+
+2. **Alpha Vantage API Rate Limits**
+   - Requests per minute configuration
+   - Requests per day configuration
+   - Helper text: "Default: 5 for free tier, 15-75 for paid plans"
+   - Warning alert about exceeding API quotas
+
+#### Order Execution Preferences:
+- Default order type selector (market/limit)
+  - Helper text explaining difference between order types
+- Limit price offset percentage
+  - Disabled when market order type selected
+  - Helper text: "For limit orders: % above ask (buy) or below bid (sell)"
+  - Range: 0-10%, step 0.1%
+
+#### Notification Preferences:
+- Enable/disable notifications switch
+  - Helper text: "Receive in-app notifications for scans, trades, and alerts"
+- Sound alerts switch
+  - Disabled when notifications are off
+  - Helper text: "Play sound when important notifications arrive"
+
+#### Theme Settings:
+- Light/dark theme radio buttons
+- Info alert: "Theme changes require an application restart to take effect"
+
+#### User Experience:
+- Save All Settings button with loading state
+- Refresh button to reload settings from database
+- Success/error alerts (auto-dismiss)
+- All settings loaded from database on mount
+- Batch save with transaction support
+- Maintained existing Trading Mode and API Configuration sections
+
+#### Backend Support:
+**New IPC Handlers (main.js):**
+- `get-app-settings` - Load all settings as object
+- `get-app-setting` - Get single setting by key
+- `update-app-setting` - Update single setting
+- `update-app-settings` - Batch update with transaction
+
+**Preload Bridge (preload.js):**
+- ✅ `window.electron.getAppSettings()`
+- ✅ `window.electron.getAppSetting(key)`
+- ✅ `window.electron.updateAppSetting(key, value)`
+- ✅ `window.electron.updateAppSettings(settings)`
+
+**TypeScript Types:**
+- Updated ElectronAPI interface in `src/types/index.ts`
+- Added AppSettings interface in Settings.tsx
+
+**Database:**
+- Uses existing `app_settings` table from schema.sql
+- Settings pre-populated with defaults:
+  - theme: 'light'
+  - notifications_enabled: 'true'
+  - sound_alerts: 'false'
+  - default_order_type: 'limit'
+  - limit_price_offset_percent: '0.5'
+  - alpaca_rate_limit_per_minute: '10000'
+  - alpha_vantage_rate_limit_per_minute: '5'
+  - alpha_vantage_rate_limit_per_day: '25'
+
+---
+
 ## 🧪 Ready to Test
 
-The ScreenerBuilder component is **fully functional and ready to test**!
+All three components (ScreenerBuilder, Scheduler, and Enhanced Settings) are **fully functional and ready to test**!
 
 ### How to Test:
 
@@ -210,41 +350,53 @@ The ScreenerBuilder component is **fully functional and ready to test**!
    - Watch for results dialog
    - (Note: Scan results depend on backend scanner implementation)
 
+8. **Navigate to "Scheduler" in the menu**
+
+9. **Test Scheduler UI:**
+   - View scheduler status (should be stopped initially)
+   - Click "Start Scheduler" (needs scheduled profiles)
+   - View scheduled profiles cards
+   - Click "Run Now" on a profile for manual scan
+   - Watch scan history populate
+   - Click "Stop Scheduler"
+   - Use refresh button to update status
+
+10. **Navigate to "Settings" in the menu**
+
+11. **Test Enhanced Settings UI:**
+   - View all settings sections (Trading Mode, Rate Limiting, Order Execution, Notifications, Theme, API Config)
+   - Modify Alpaca rate limit per minute (e.g., change to 200 for free tier)
+   - Modify Alpha Vantage rate limits (e.g., 5 per minute, 25 per day)
+   - Change default order type between market and limit
+   - Adjust limit price offset percentage
+   - Toggle notifications and sound alerts
+   - Switch theme between light and dark
+   - Click "Save All Settings" button
+   - Verify success message appears
+   - Click "Refresh" button to reload settings
+   - Verify all changes persisted correctly
+
 ### Known Limitations:
 - **Scanner backend**: Stock screening is implemented, options screening logic needs to be added
 - **Rate limiting**: Scanner respects API rate limits configured in Phase 2
 - **Options data**: Requires Alpaca options data access (may need specific account tier)
+- **Scan history**: Currently shows results from getScanResults() - more comprehensive logging can be added
 
 ---
 
-## 📋 Remaining Phase 3 Tasks
+## 📋 Remaining Phase 3 Tasks (2 of 5)
 
-### 1. Scheduler UI Component (Next Priority)
-- Start/stop scheduler controls
-- View active scheduled profiles
-- Display next run times
-- Manual scan triggers
-- Scan history viewer
-
-### 2. Enhanced Settings UI
-- Rate limit configuration (Alpaca & Alpha Vantage)
-- Notification preferences
-- Order execution preferences
-- Theme settings
-
-### 3. Scan Results Viewer
+### 1. Scan Results Viewer (Next Priority)
 - Results table with filtering/sorting
 - Match details and market data
 - Quick trade execution
 - Historical results browser
 
-### 4. Options Screening Logic (Backend)
+### 2. Options Screening Logic (Backend)
 - Implement option-specific filtering in scannerService.js
 - Integrate with getOptionContracts()
 - Filter by Greeks, strike, expiration
 - Test with real options data
-
-### 5. Integration Testing
 - End-to-end profile creation → scan → results flow
 - Test with various parameter combinations
 - Verify database persistence
@@ -256,9 +408,12 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 - **Options API Methods**: 3 new methods, ~140 lines
 - **ScreenerBuilder Component**: 1 component, 902 lines
-- **Total Phase 3 Code**: ~1,050 lines added
-- **Files Modified**: 2 (alpacaService.js, ScreenerBuilder.tsx)
-- **Files Created**: 1 (PHASE3_PROGRESS.md)
+- **Scheduler Component**: 1 component, 420 lines
+- **Enhanced Settings Component**: 1 component, 412 lines
+- **Backend IPC Handlers**: 4 new handlers in main.js, ~60 lines
+- **Total Phase 3 Code**: ~1,935 lines added
+- **Files Modified**: 6 (alpacaService.js, ScreenerBuilder.tsx, App.tsx, Settings.tsx, main.js, preload.js, types/index.ts)
+- **Files Created**: 2 (Scheduler.tsx, PHASE3_PROGRESS.md)
 
 ---
 
@@ -266,12 +421,12 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 **Option C approach - One component at a time:**
 
-1. Test ScreenerBuilder thoroughly
-2. Fix any issues discovered
-3. Implement Scheduler UI component next
-4. Then Enhanced Settings
-5. Then Scan Results Viewer
-6. Finally, Options screening backend logic
+1. ~~Test ScreenerBuilder thoroughly~~ ✅ Working!
+2. ~~Fix any issues discovered~~ ✅ Fixed JSX error
+3. ~~Implement Scheduler UI component~~ ✅ Complete!
+4. ~~Enhanced Settings UI (rate limits configuration)~~ ✅ Complete!
+5. **Next:** Scan Results Viewer
+6. Then, Options screening backend logic
 
 ---
 
@@ -279,6 +434,11 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 1. **16ad556** - feat(phase3): Add options API support to alpacaService
 2. **06a0ce4** - feat(phase3): Implement comprehensive ScreenerBuilder UI component
+3. **2e41cca** - fix(phase3): Escape > character in JSX for MACD Signal menu item
+4. **34f6c6d** - feat(phase3): Implement Scheduler UI component with full management
+5. **fa4fbb5** - docs(phase3): Update progress with Scheduler completion
+6. **fdb2c33** - feat(phase3): Implement Enhanced Settings UI with rate limit configuration
+7. **[this commit]** - docs(phase3): Update progress with Enhanced Settings completion
 
 ---
 
@@ -292,6 +452,8 @@ All types are defined in `src/types/index.ts`:
 - `AssetType`
 
 ### Component Structure
+
+**ScreenerBuilder.tsx**
 ```
 ScreenerBuilder.tsx
 ├── State management (profiles, form data, dialogs)
@@ -302,18 +464,61 @@ ScreenerBuilder.tsx
 └── Profile list with actions
 ```
 
+**Scheduler.tsx**
+```
+Scheduler.tsx
+├── State management (status, profiles, history, loading)
+├── Auto-refresh (10 second interval)
+├── Scheduler status section with start/stop
+├── Scheduled profiles grid (Card components)
+├── Scan history list
+└── Manual scan triggers
+```
+
+**Settings.tsx**
+```
+Settings.tsx
+├── State management (settings, loading, alerts)
+├── useEffect - Load settings on mount
+├── Trading Mode section with confirmation dialog
+├── Rate Limiting Configuration section
+│   ├── Alpaca API rate limits
+│   └── Alpha Vantage API rate limits
+├── Order Execution Preferences section
+├── Notification Preferences section
+├── Theme Settings section
+├── API Configuration section (read-only)
+└── Save/Refresh controls
+```
+
 ### Material-UI Components Used
+
+**ScreenerBuilder:**
 - Dialog, Accordion, Grid, TextField, Select
 - Switch, Slider, Chip, Tooltip, IconButton
 - Alert, List, Paper, Button
+
+**Scheduler:**
+- Card, CardContent, CardActions, Grid
+- List, ListItem, Chip, LinearProgress
+- Paper, Alert, IconButton, Button
+
+**Settings:**
+- Paper, TextField, Grid, Divider
+- Select, MenuItem, FormControl, InputLabel
+- Switch, FormControlLabel, RadioGroup, Radio
+- Alert, Dialog, Button
 
 ### Styling
 - Uses Material-UI sx prop for inline styles
 - Responsive Grid layout (xs={6}, xs={12})
 - Consistent spacing (mb: 2, mt: 3, p: 2)
+- Color-coded status indicators
 
 ---
 
 **End of Phase 3 Progress Report**
 
-Ready to test! 🎉
+✅ **3 of 5 Major Components Complete!**
+
+Ready to test ScreenerBuilder, Scheduler, and Enhanced Settings! 🎉

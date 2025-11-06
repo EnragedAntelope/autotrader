@@ -258,6 +258,55 @@ function setupIPC() {
     return { success: true };
   });
 
+  // App Settings
+  ipcMain.handle('get-app-settings', () => {
+    const settings = db.prepare('SELECT key, value FROM app_settings').all();
+    // Convert array of {key, value} objects to a single object
+    const settingsObj = {};
+    for (const setting of settings) {
+      settingsObj[setting.key] = setting.value;
+    }
+    return settingsObj;
+  });
+
+  ipcMain.handle('get-app-setting', (event, key) => {
+    const result = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+    return result ? result.value : null;
+  });
+
+  ipcMain.handle('update-app-setting', (event, key, value) => {
+    const stmt = db.prepare(`
+      INSERT INTO app_settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    stmt.run(key, value);
+    return { success: true };
+  });
+
+  ipcMain.handle('update-app-settings', (event, settings) => {
+    const stmt = db.prepare(`
+      INSERT INTO app_settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    // Update each setting in a transaction
+    const transaction = db.transaction((settingsObj) => {
+      for (const [key, value] of Object.entries(settingsObj)) {
+        stmt.run(key, value.toString());
+      }
+    });
+
+    transaction(settings);
+    return { success: true };
+  });
+
   // Scheduler Control
   ipcMain.handle('start-scheduler', () => {
     SchedulerService.start(db);

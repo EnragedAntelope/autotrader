@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -6,7 +6,6 @@ import {
   FormControl,
   FormLabel,
   RadioGroup,
-  FormControlRadio,
   Radio,
   FormControlLabel,
   Button,
@@ -16,17 +15,69 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  TextField,
+  Grid,
+  Switch,
+  Divider,
+  MenuItem,
+  Select,
+  InputLabel,
+  Chip,
 } from '@mui/material';
+import {
+  Save as SaveIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { setTradingMode } from '../store/accountSlice';
 import { TradingMode } from '../types';
+
+interface AppSettings {
+  theme: string;
+  notifications_enabled: string;
+  sound_alerts: string;
+  default_order_type: string;
+  limit_price_offset_percent: string;
+  alpaca_rate_limit_per_minute: string;
+  alpha_vantage_rate_limit_per_minute: string;
+  alpha_vantage_rate_limit_per_day: string;
+}
 
 function Settings() {
   const dispatch = useDispatch<AppDispatch>();
   const { tradingMode } = useSelector((state: RootState) => state.account);
   const [selectedMode, setSelectedMode] = useState<TradingMode>(tradingMode);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+  // App settings state
+  const [settings, setSettings] = useState<AppSettings>({
+    theme: 'light',
+    notifications_enabled: 'true',
+    sound_alerts: 'false',
+    default_order_type: 'limit',
+    limit_price_offset_percent: '0.5',
+    alpaca_rate_limit_per_minute: '10000',
+    alpha_vantage_rate_limit_per_minute: '5',
+    alpha_vantage_rate_limit_per_day: '25',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const appSettings = await window.electron.getAppSettings();
+      setSettings(appSettings as AppSettings);
+    } catch (err: any) {
+      console.error('Failed to load settings:', err);
+      setError(`Failed to load settings: ${err.message}`);
+    }
+  };
 
   const handleModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newMode = event.target.value as TradingMode;
@@ -49,11 +100,66 @@ function Settings() {
     setConfirmDialogOpen(false);
   };
 
+  const handleSettingChange = (key: keyof AppSettings, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveSettings = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await window.electron.updateAppSettings(settings);
+      setSuccess('Settings saved successfully');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(`Failed to save settings: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefreshSettings = () => {
+    loadSettings();
+    setSuccess('Settings refreshed');
+    setTimeout(() => setSuccess(null), 2000);
+  };
+
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Settings
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">Settings</Typography>
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefreshSettings}
+            disabled={loading}
+            sx={{ mr: 2 }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSaveSettings}
+            disabled={loading}
+          >
+            Save All Settings
+          </Button>
+        </Box>
+      </Box>
+
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {/* Trading Mode */}
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -78,6 +184,185 @@ function Settings() {
             ⚠️ You are in LIVE TRADING mode. Real money will be used for trades.
           </Alert>
         )}
+      </Paper>
+
+      {/* Rate Limiting Configuration */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          API Rate Limiting
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Configure rate limits to prevent exceeding API quotas. Adjust based on your API plan tier.
+        </Typography>
+
+        <Divider sx={{ mb: 3 }} />
+
+        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', mt: 2 }}>
+          Alpaca API Rate Limits
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Requests Per Minute"
+              type="number"
+              value={settings.alpaca_rate_limit_per_minute}
+              onChange={(e) => handleSettingChange('alpaca_rate_limit_per_minute', e.target.value)}
+              helperText="Default: 10,000 for paid plans, 200 for free tier"
+              InputProps={{ inputProps: { min: 1 } }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Alert severity="info" sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+              Alpaca has no daily limit
+            </Alert>
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ mt: 3, mb: 3 }} />
+
+        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          Alpha Vantage API Rate Limits
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Requests Per Minute"
+              type="number"
+              value={settings.alpha_vantage_rate_limit_per_minute}
+              onChange={(e) => handleSettingChange('alpha_vantage_rate_limit_per_minute', e.target.value)}
+              helperText="Default: 5 for free tier, 15-75 for paid plans"
+              InputProps={{ inputProps: { min: 1 } }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Requests Per Day"
+              type="number"
+              value={settings.alpha_vantage_rate_limit_per_day}
+              onChange={(e) => handleSettingChange('alpha_vantage_rate_limit_per_day', e.target.value)}
+              helperText="Default: 25 for free tier, 150-1200 for paid plans"
+              InputProps={{ inputProps: { min: 1 } }}
+            />
+          </Grid>
+        </Grid>
+
+        <Alert severity="warning" sx={{ mt: 3 }}>
+          Setting rate limits too high may result in API errors or account suspension.
+          Consult your API provider documentation for your plan limits.
+        </Alert>
+      </Paper>
+
+      {/* Order Execution Preferences */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Order Execution Preferences
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Configure default order execution settings for automated trades.
+        </Typography>
+
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Default Order Type</InputLabel>
+              <Select
+                value={settings.default_order_type}
+                label="Default Order Type"
+                onChange={(e) => handleSettingChange('default_order_type', e.target.value)}
+              >
+                <MenuItem value="market">Market Order</MenuItem>
+                <MenuItem value="limit">Limit Order</MenuItem>
+              </Select>
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
+                Market orders execute immediately at current price. Limit orders execute at your specified price or better.
+              </Typography>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Limit Price Offset (%)"
+              type="number"
+              value={settings.limit_price_offset_percent}
+              onChange={(e) => handleSettingChange('limit_price_offset_percent', e.target.value)}
+              helperText="For limit orders: % above ask (buy) or below bid (sell)"
+              InputProps={{ inputProps: { min: 0, max: 10, step: 0.1 } }}
+              disabled={settings.default_order_type === 'market'}
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Notification Preferences */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Notification Preferences
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Configure how you receive alerts and notifications.
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.notifications_enabled === 'true'}
+                  onChange={(e) => handleSettingChange('notifications_enabled', e.target.checked ? 'true' : 'false')}
+                />
+              }
+              label="Enable Notifications"
+            />
+            <Typography variant="caption" color="textSecondary" display="block" sx={{ ml: 4 }}>
+              Receive in-app notifications for scans, trades, and alerts
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.sound_alerts === 'true'}
+                  onChange={(e) => handleSettingChange('sound_alerts', e.target.checked ? 'true' : 'false')}
+                  disabled={settings.notifications_enabled === 'false'}
+                />
+              }
+              label="Sound Alerts"
+            />
+            <Typography variant="caption" color="textSecondary" display="block" sx={{ ml: 4 }}>
+              Play sound when important notifications arrive
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Theme Settings */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Appearance
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Customize the application theme.
+        </Typography>
+
+        <FormControl component="fieldset">
+          <FormLabel component="legend">Theme</FormLabel>
+          <RadioGroup
+            value={settings.theme}
+            onChange={(e) => handleSettingChange('theme', e.target.value)}
+          >
+            <FormControlLabel value="light" control={<Radio />} label="Light Theme" />
+            <FormControlLabel value="dark" control={<Radio />} label="Dark Theme" />
+          </RadioGroup>
+        </FormControl>
+
+        <Alert severity="info" sx={{ mt: 2 }}>
+          Theme changes require an application restart to take effect.
+        </Alert>
       </Paper>
 
       {/* API Configuration */}
