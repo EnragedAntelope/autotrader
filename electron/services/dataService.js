@@ -1,5 +1,6 @@
 const alpacaService = require('./alpacaService');
 const axios = require('axios');
+const RateLimiter = require('../utils/rateLimiter');
 
 /**
  * Data Service - Aggregates market data from multiple sources
@@ -9,17 +10,16 @@ const axios = require('axios');
 class DataService {
   constructor() {
     this.alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
-    this.requestQueue = [];
-    this.rateLimits = {
-      alphaVantage: {
-        requests: 0,
-        resetTime: Date.now() + 60000, // Reset every minute
-        maxPerMinute: 5,
-        maxPerDay: 25,
-        dailyRequests: 0,
-        dailyResetTime: Date.now() + 86400000, // 24 hours
-      },
-    };
+    this.rateLimiter = null; // Will be initialized with database
+  }
+
+  /**
+   * Initialize the data service with database connection
+   * This allows us to load rate limit configuration from database
+   */
+  initialize(db) {
+    this.rateLimiter = new RateLimiter(db);
+    console.log('DataService initialized with rate limiter');
   }
 
   /**
@@ -55,14 +55,14 @@ class DataService {
       throw new Error('Alpha Vantage API key not configured');
     }
 
-    // Check rate limits
-    this.checkAlphaVantageRateLimit();
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized - call initialize(db) first');
+    }
 
-    try {
+    // Use rate limiter to execute request
+    return this.rateLimiter.executeRequest('alphaVantage', async () => {
       const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
       const response = await axios.get(url);
-
-      this.incrementAlphaVantageRequests();
 
       if (response.data.Note) {
         throw new Error('Alpha Vantage rate limit exceeded');
@@ -83,52 +83,32 @@ class DataService {
         industry: data.Industry || '',
         description: data.Description || '',
       };
-    } catch (error) {
-      console.error(`Error getting fundamentals for ${symbol}:`, error);
-      throw error;
-    }
+    });
   }
 
-  checkAlphaVantageRateLimit() {
-    const now = Date.now();
-    const limits = this.rateLimits.alphaVantage;
-
-    // Reset minute counter
-    if (now > limits.resetTime) {
-      limits.requests = 0;
-      limits.resetTime = now + 60000;
-    }
-
-    // Reset daily counter
-    if (now > limits.dailyResetTime) {
-      limits.dailyRequests = 0;
-      limits.dailyResetTime = now + 86400000;
-    }
-
-    // Check limits
-    if (limits.requests >= limits.maxPerMinute) {
-      throw new Error('Alpha Vantage rate limit: Max requests per minute exceeded');
-    }
-
-    if (limits.dailyRequests >= limits.maxPerDay) {
-      throw new Error('Alpha Vantage rate limit: Max requests per day exceeded');
-    }
-  }
-
-  incrementAlphaVantageRequests() {
-    this.rateLimits.alphaVantage.requests++;
-    this.rateLimits.alphaVantage.dailyRequests++;
-  }
-
+  /**
+   * Get rate limit status for all providers
+   */
   getRateLimitStatus() {
-    return {
-      alphaVantage: {
-        requestsThisMinute: this.rateLimits.alphaVantage.requests,
-        requestsToday: this.rateLimits.alphaVantage.dailyRequests,
-        maxPerMinute: this.rateLimits.alphaVantage.maxPerMinute,
-        maxPerDay: this.rateLimits.alphaVantage.maxPerDay,
-      },
-    };
+    if (!this.rateLimiter) {
+      return {
+        alpaca: { error: 'Not initialized' },
+        alphaVantage: { error: 'Not initialized' },
+      };
+    }
+    return this.rateLimiter.getStatus();
+  }
+
+  /**
+   * Update rate limit configuration
+   * @param {string} provider - 'alpaca' or 'alphaVantage'
+   * @param {Object} settings - { maxPerMinute, maxPerDay }
+   */
+  updateRateLimits(provider, settings) {
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized');
+    }
+    return this.rateLimiter.saveConfiguration(provider, settings);
   }
 
   /**
