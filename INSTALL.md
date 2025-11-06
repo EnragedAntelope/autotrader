@@ -176,18 +176,36 @@ npx electron-rebuild -f -w better-sqlite3
 
 **Fix - Option 2 (If Option 1 fails due to Python version)**:
 
-If you have Python 3.13 (which node-gyp doesn't support yet), install Python 3.12:
+If you have Python 3.13 system-wide (which node-gyp doesn't support yet), you have two choices:
 
-1. Download Python 3.12.x from https://www.python.org/downloads/windows/
-2. Install it
-3. Set the PYTHON environment variable:
+**Option 2A - Use Python 3.12 for this project only (Recommended)**:
+
+This keeps your system Python 3.13 intact for other projects.
+
+1. Download portable Python 3.12.x from https://www.python.org/downloads/windows/
+2. Extract it to a folder (e.g., `C:\python312\`)
+3. Create a `.npmrc` file in the project root with:
+   ```
+   python=C:\python312\python.exe
+   ```
+4. Run the rebuild:
+   ```bash
+   npm run rebuild
+   ```
+
+**Option 2B - Set Python 3.12 system-wide**:
+
+This affects ALL projects on your system.
+
+1. Download and install Python 3.12.x from https://www.python.org/downloads/windows/
+2. Set the PYTHON environment variable:
    ```cmd
    # In Command Prompt (run as Administrator)
    setx PYTHON "C:\Python312\python.exe" /M
    ```
-4. Restart your terminal and try again:
+3. Restart your terminal and try again:
    ```bash
-   npx electron-rebuild -f -w better-sqlite3
+   npm run rebuild
    ```
 
 **Fix - Option 3 (Clean reinstall)**:

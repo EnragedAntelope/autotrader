@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Local npm configuration (may contain local Python paths)
+.npmrc
+
 # Dependencies
 node_modules/
 package-lock.json
