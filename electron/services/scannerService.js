@@ -1,6 +1,14 @@
 const alpacaService = require('./alpacaService');
-const dataService = require('./dataService');
 const RateLimiter = require('../utils/rateLimiter');
+
+// Lazy load dataService to avoid circular dependency
+let dataService = null;
+function getDataService() {
+  if (!dataService) {
+    dataService = require('./dataService');
+  }
+  return dataService;
+}
 
 /**
  * Scanner Service - Executes screening logic
@@ -295,7 +303,7 @@ class ScannerService {
 
     // Fetch fresh data
     try {
-      const fundamentals = await dataService.getFundamentals(symbol);
+      const fundamentals = await getDataService().getFundamentals(symbol);
 
       // Cache for 24 hours
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

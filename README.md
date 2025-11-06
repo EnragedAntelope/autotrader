@@ -109,7 +109,29 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
 TRADING_MODE=paper
 ```
 
-### 4. Getting Your Alpaca API Keys
+### 4. Rebuild better-sqlite3 for Electron (If Needed)
+
+**When do you need this?**
+- If you get a MODULE_VERSION error when running `npm run dev`
+
+**Quick fix:**
+```bash
+npm run rebuild
+```
+
+This script will:
+- Check your Python version (needs 3.8-3.12, NOT 3.13)
+- Rebuild better-sqlite3 for Electron automatically
+- Give you clear error messages if something is wrong
+
+**If you have Python 3.13:**
+- Install Python 3.12 from https://www.python.org/downloads/
+- Windows: Set environment variable `PYTHON` to point to Python 3.12
+- Then run `npm run rebuild` again
+
+See [INSTALL.md](INSTALL.md) for detailed troubleshooting.
+
+### 5. Getting Your Alpaca API Keys
 
 1. Sign up for a free account at [Alpaca Markets](https://app.alpaca.markets/signup)
 2. Navigate to your [Paper Trading Dashboard](https://app.alpaca.markets/paper/dashboard/overview)
@@ -123,7 +145,7 @@ TRADING_MODE=paper
 3. Generate live trading API keys
 4. Copy to the ALPACA_LIVE_* variables in `.env`
 
-### 5. Getting Alpha Vantage API Key (Optional)
+### 6. Getting Alpha Vantage API Key (Optional)
 
 1. Visit [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
 2. Enter your email and click "GET FREE API KEY"

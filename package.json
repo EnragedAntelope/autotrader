@@ -26,6 +26,7 @@
     "eslint": "^9.15.0"
   },
   "scripts": {
+    "rebuild": "node rebuild-sqlite.js",
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
