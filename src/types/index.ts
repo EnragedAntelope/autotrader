@@ -324,6 +324,7 @@ export interface ElectronAPI {
   // Scanner Operations
   runScan: (profileId: number) => Promise<ScanResult[]>;
   getScanResults: (profileId: number, limit?: number) => Promise<ScanResult[]>;
+  getAllScanResults: (filters?: ScanResultFilters) => Promise<(ScanResult & { profile_name?: string })[]>;
 
   // Trade Operations
   executeTrade: (tradeParams: TradeParams) => Promise<{ success: boolean; order?: any; rejected?: boolean; reason?: string }>;
@@ -365,6 +366,15 @@ export interface TradeHistoryFilters {
   profile_id?: number;
   status?: OrderStatus;
   from_date?: string;
+  limit?: number;
+}
+
+export interface ScanResultFilters {
+  profileId?: number;
+  symbol?: string;
+  fromDate?: string;
+  toDate?: string;
+  assetType?: AssetType;
   limit?: number;
 }
 
