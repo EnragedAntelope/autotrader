@@ -77,6 +77,7 @@ if (npmrcPython) {
 }
 
 console.log('\nStep 1: Checking Python version...');
+console.log('(Python is only needed if prebuilt binaries are unavailable)\n');
 try {
   const pythonCmd = npmrcPython ? `"${npmrcPython}"` : (platform() === 'win32' ? 'python' : 'python3');
   const version = execSync(`${pythonCmd} --version`, { encoding: 'utf8' }).trim();
@@ -90,36 +91,36 @@ try {
     if (major === 3 && minor >= 8 && minor <= 12) {
       console.log('✓ Python version is compatible\n');
     } else if (major === 3 && minor === 13) {
-      console.error('\n⚠ WARNING: Python 3.13 detected!');
-      console.error('node-gyp supports Python 3.8-3.12 only.');
-      console.error('\nTo use Python 3.12 for this project only:');
-      console.error('1. Download portable Python 3.12');
-      console.error('2. Create .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
-      console.error('\nProceeding anyway (may fail)...\n');
+      console.warn('\n⚠ WARNING: Python 3.13 detected!');
+      console.warn('node-gyp supports Python 3.8-3.12 only (needed if building from source).');
+      console.warn('\nTo use Python 3.12 for this project only:');
+      console.warn('1. Download portable Python 3.12');
+      console.warn('2. Create .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
+      console.warn('\nThis should not be an issue with prebuilt binaries...\n');
     } else {
       console.warn(`⚠ Warning: Python ${major}.${minor} detected. Supported: 3.8-3.12\n`);
     }
   }
 } catch (error) {
   console.warn('⚠ Warning: Could not check Python version');
-  console.warn('If rebuild fails, ensure Python 3.8-3.12 is installed\n');
+  console.warn('This is OK if prebuilt binaries are available\n');
 }
 
 // Rebuild better-sqlite3 using npm rebuild with Electron headers
 console.log('Step 2: Rebuilding better-sqlite3 for Electron...');
-console.log('This uses npm rebuild (not @electron/rebuild) to avoid dependency issues.\n');
+console.log('This will download prebuilt binaries for better-sqlite3 compatible with Electron.');
+console.log('Note: Using prebuilt binaries avoids C++20 compilation issues.\n');
 
 try {
-  // Set environment variables for the rebuild
+  // Set environment variables to download the correct prebuilt binary for Electron
   const env = { ...process.env };
   env.npm_config_target = electronVersion;
   env.npm_config_arch = process.arch;
   env.npm_config_target_arch = process.arch;
   env.npm_config_dist_url = 'https://electronjs.org/headers';
   env.npm_config_runtime = 'electron';
-  env.npm_config_build_from_source = 'true';
 
-  execSync('npm rebuild better-sqlite3 --build-from-source', {
+  execSync('npm rebuild better-sqlite3', {
     stdio: 'inherit',
     env,
     shell: true
@@ -135,10 +136,13 @@ try {
   console.error('  ❌ Rebuild failed!');
   console.error('============================================\n');
   console.error('Common causes:');
-  console.error('1. Python version incompatible (need 3.8-3.12, not 3.13)');
-  console.error('2. Visual Studio Build Tools not installed (Windows)');
-  console.error('3. node-gyp not configured correctly');
-  console.error('\nFor Python 3.13 users:');
+  console.error('1. Network error downloading prebuilt binaries');
+  console.error('2. Prebuilt binary not available for your platform');
+  console.error('3. If falling back to source build:');
+  console.error('   - Python version incompatible (need 3.8-3.12, not 3.13)');
+  console.error('   - Visual Studio Build Tools not installed (Windows)');
+  console.error('   - node-gyp not configured correctly');
+  console.error('\nFor Python 3.13 users (if source build is needed):');
   console.error('  Create .npmrc file with: python=C:\\path\\to\\python312\\python.exe');
   console.error('\nSee INSTALL.md for detailed troubleshooting.');
   process.exit(1);
