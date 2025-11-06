@@ -46,17 +46,21 @@ If you get C++20 or MSBuild errors, see [Troubleshooting](#troubleshooting-windo
 
 ### 3. Set Up Environment Variables
 
-**All Platforms:**
-```bash
-# Copy example file
-cp .env.example .env
+Copy the example environment file:
 
-# Edit .env and add your Alpaca API keys
+**Linux/Mac:**
+```bash
+cp .env.example .env
 ```
 
-**Windows (if cp doesn't work):**
-```bash
+**Windows (Command Prompt):**
+```cmd
 copy .env.example .env
+```
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.example .env
 ```
 
 Edit `.env` and add your Alpaca API keys (see README.md for detailed instructions)

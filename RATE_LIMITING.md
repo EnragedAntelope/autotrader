@@ -198,7 +198,15 @@ When limits are reached, requests queue instead of failing.
 npm install
 
 # Set up API keys in .env file
+# Linux/Mac:
 cp .env.example .env
+
+# Windows (Command Prompt):
+copy .env.example .env
+
+# Windows (PowerShell):
+Copy-Item .env.example .env
+
 # Edit .env and add your ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPHA_VANTAGE_API_KEY
 ```
 

@@ -76,8 +76,19 @@ npm install
 
 Copy the example environment file:
 
+**Linux/Mac:**
 ```bash
 cp .env.example .env
+```
+
+**Windows (Command Prompt):**
+```cmd
+copy .env.example .env
+```
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.example .env
 ```
 
 Edit `.env` and add your API keys:
