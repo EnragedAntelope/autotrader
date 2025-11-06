@@ -337,6 +337,12 @@ export interface ElectronAPI {
   getRiskSettings: () => Promise<RiskSettings>;
   updateRiskSettings: (settings: Partial<RiskSettings>) => Promise<{ success: boolean }>;
 
+  // App Settings
+  getAppSettings: () => Promise<Record<string, string>>;
+  getAppSetting: (key: string) => Promise<string | null>;
+  updateAppSetting: (key: string, value: string) => Promise<{ success: boolean }>;
+  updateAppSettings: (settings: Record<string, string>) => Promise<{ success: boolean }>;
+
   // Scheduler Control
   startScheduler: () => Promise<{ success: boolean; status: string }>;
   stopScheduler: () => Promise<{ success: boolean; status: string }>;
