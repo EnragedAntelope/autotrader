@@ -1,6 +1,8 @@
 # Installation Instructions
 
-## ⚠️ IMPORTANT: Node.js Version
+## ⚠️ IMPORTANT: Version Requirements
+
+### Node.js Version
 
 **You must use Node.js LTS version 18.x, 20.x, or 22.x**
 
@@ -12,6 +14,16 @@ node --version
 ```
 
 If you have v23.x, downgrade to Node.js 20.x LTS from https://nodejs.org/
+
+### better-sqlite3 and Electron Compatibility
+
+**This project requires better-sqlite3 v11.0.0 or later** for Electron 32 compatibility.
+
+- Electron 32+ requires C++20 support
+- better-sqlite3 v11.0.0+ includes C++20 support and prebuilt binaries for Electron 32
+- Earlier versions (9.x) will fail to compile with C++20 errors
+
+The project is configured with compatible versions. Do not downgrade better-sqlite3 below v11.0.0.
 
 ## Quick Start
 

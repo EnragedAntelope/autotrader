@@ -1,5 +1,33 @@
 # Security Updates & Dependency Upgrades
 
+## Electron 32 Compatibility Fix
+
+**Date**: 2025-11-06
+**Impact**: Fixes C++20 compilation errors on Windows with Electron 32
+
+### Problem
+- better-sqlite3 v9.4.5 lacked prebuilt binaries for Electron 32
+- Fallback source compilation failed: Electron 32 requires C++20, but v9.x compiled with C++17
+- Error: `#error: "C++20 or later required."`
+
+### Solution
+**Upgraded better-sqlite3 from v9.4.5 to v11.10.0**
+
+- better-sqlite3 v11.0.0+ includes C++20 support (PR #1226, merged Aug 15, 2024)
+- Includes prebuilt binaries for Electron 32 on Windows/Mac/Linux
+- Breaking change: Dropped support for Node.js v21 and Electron v25 (we use Node 20 and Electron 32, so no impact)
+- Updated @types/better-sqlite3 from v7.6.11 to v7.6.13
+
+### Result
+- No more compilation errors on Windows
+- No more `--build-from-source` workarounds needed
+- Prebuilt binaries download automatically
+- Installation is faster and more reliable
+
+---
+
+## Previous Updates
+
 **Date**: 2025-11-05
 **Impact**: Fixes 5 vulnerabilities (3 HIGH, 2 MODERATE) and removes 7 deprecation warnings
 
