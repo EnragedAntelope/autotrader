@@ -25,9 +25,9 @@ const fs = require('fs');
 const schema = fs.readFileSync(path.join(__dirname, '../database/schema.sql'), 'utf8');
 db.exec(schema);
 
-// Load services
-const scannerService = require('../electron/services/scannerService');
+// Load services (order matters - dataService must be loaded first to avoid circular dependency)
 const dataService = require('../electron/services/dataService');
+const scannerService = require('../electron/services/scannerService');
 
 async function runTests() {
   console.log('==========================================');

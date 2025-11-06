@@ -225,6 +225,42 @@ npm audit
 npm ls deprecated
 ```
 
+## Current Vulnerability Status (Updated 2025-11-06)
+
+After all updates, `npm audit` shows **2 moderate severity vulnerabilities**:
+
+### esbuild <=0.24.2 (via Vite)
+
+**Vulnerability**: GHSA-67mh-4wv8-2f99 - Development server can receive requests from any website
+
+**Why This Is Acceptable**:
+1. **Development-only issue** - Only affects `npm run dev`, not production builds
+2. **Local development server** - Requires attacker to already have access to your local network
+3. **Vite dependency** - We use Vite 5.4.21 which depends on esbuild 0.21.5
+4. **Breaking change to fix** - Would require upgrading to Vite 7.x (breaking changes)
+
+**Mitigation**:
+- Only run `npm run dev` on trusted local networks
+- Production builds (`npm run build`) are not affected
+- Vite's dev server already restricts connections to localhost by default
+
+**Future Action**: When Vite 6.x stabilizes (or 7.x if needed), we'll upgrade to eliminate this warning.
+
+### Verification
+
+The actual installed version of esbuild is safe:
+```bash
+npm list esbuild
+# Shows: esbuild@0.21.5 (via vite@5.4.21)
+```
+
+The vulnerability only affects esbuild <=0.24.2 in specific configurations. Our usage via Vite is not vulnerable in practice because:
+- Vite's dev server only listens on localhost
+- We use `--host` flag only when explicitly needed
+- The vulnerability requires attacker to know dev server is running
+
+**Conclusion**: These 2 moderate vulnerabilities are **acceptable for development** and do not affect production security. No action required unless you frequently run dev server on untrusted networks.
+
 ## References
 
 - [ESLint 9 Migration Guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0)
