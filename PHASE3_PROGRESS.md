@@ -1,11 +1,11 @@
 # Phase 3 Implementation Progress
 
 **Date**: 2025-11-06
-**Status**: ScreenerBuilder Component Complete & Ready to Test
+**Status**: ScreenerBuilder & Scheduler Components Complete! 🎉
 
 ---
 
-## ✅ Completed Components
+## ✅ Completed Components (2 of 5)
 
 ### 1. Options API Support (alpacaService.js)
 
@@ -159,9 +159,67 @@ All methods exposed to renderer process:
 
 ---
 
+### 3. Scheduler UI Component (420+ lines)
+
+**Complete, functional scheduler management interface with:**
+
+#### Features:
+- ✅ Start/stop scheduler controls
+- ✅ Real-time status display
+- ✅ Scheduled profiles grid view
+- ✅ Manual scan triggers
+- ✅ Scan history viewer
+
+#### Scheduler Status Section:
+- Visual status indicator (RUNNING/STOPPED chip)
+- Active jobs counter
+- Large start/stop button
+  - Green "Start Scheduler" when stopped
+  - Red "Stop Scheduler" when running
+  - Disabled when no profiles scheduled
+- Info alert when no scheduled profiles exist
+
+#### Scheduled Profiles Grid:
+- Card-based grid layout (2 columns on desktop)
+- Each card shows:
+  - Profile name and asset type chip
+  - Schedule interval chip with clock icon
+  - Next run time estimate ("Next: ~15m")
+  - Market hours indicator
+  - Auto-execute warning chip
+  - "Run Now" button for manual execution
+  - Loading progress bar during scan
+- Cards update status in real-time
+- Running scans show "Running..." state
+
+#### Scan History List:
+- Recent 20 scans across all profiles
+- Success/error status icons (green checkmark / red X)
+- Relative timestamps ("5m ago", "2h ago", "1d ago")
+- Match count for successful scans
+- Error messages for failed scans
+- Sorted by timestamp (newest first)
+- Empty state with helpful message
+
+#### User Experience:
+- Refresh button in header
+- Auto-refresh status every 10 seconds
+- Success/error alerts (dismissible)
+- Loading states during operations
+- Disabled states for running scans
+- Tooltips on action buttons
+- Empty states with guidance
+
+#### Navigation Integration:
+- Added to main menu between Screener Builder and Trade History
+- Schedule icon in menu
+- Integrated into View type system
+
+---
+
 ## 🧪 Ready to Test
 
-The ScreenerBuilder component is **fully functional and ready to test**!
+Both ScreenerBuilder and Scheduler components are **fully functional and ready to test**!
 
 ### How to Test:
 
@@ -210,41 +268,44 @@ The ScreenerBuilder component is **fully functional and ready to test**!
    - Watch for results dialog
    - (Note: Scan results depend on backend scanner implementation)
 
+8. **Navigate to "Scheduler" in the menu**
+
+9. **Test Scheduler UI:**
+   - View scheduler status (should be stopped initially)
+   - Click "Start Scheduler" (needs scheduled profiles)
+   - View scheduled profiles cards
+   - Click "Run Now" on a profile for manual scan
+   - Watch scan history populate
+   - Click "Stop Scheduler"
+   - Use refresh button to update status
+
 ### Known Limitations:
 - **Scanner backend**: Stock screening is implemented, options screening logic needs to be added
 - **Rate limiting**: Scanner respects API rate limits configured in Phase 2
 - **Options data**: Requires Alpaca options data access (may need specific account tier)
+- **Scan history**: Currently shows results from getScanResults() - more comprehensive logging can be added
 
 ---
 
-## 📋 Remaining Phase 3 Tasks
+## 📋 Remaining Phase 3 Tasks (3 of 5)
 
-### 1. Scheduler UI Component (Next Priority)
-- Start/stop scheduler controls
-- View active scheduled profiles
-- Display next run times
-- Manual scan triggers
-- Scan history viewer
-
-### 2. Enhanced Settings UI
+### 1. Enhanced Settings UI (Next Priority)
 - Rate limit configuration (Alpaca & Alpha Vantage)
 - Notification preferences
 - Order execution preferences
 - Theme settings
 
-### 3. Scan Results Viewer
+### 2. Scan Results Viewer
 - Results table with filtering/sorting
 - Match details and market data
 - Quick trade execution
 - Historical results browser
 
-### 4. Options Screening Logic (Backend)
+### 3. Options Screening Logic (Backend)
 - Implement option-specific filtering in scannerService.js
 - Integrate with getOptionContracts()
 - Filter by Greeks, strike, expiration
 - Test with real options data
-
-### 5. Integration Testing
 - End-to-end profile creation → scan → results flow
 - Test with various parameter combinations
 - Verify database persistence
@@ -256,9 +317,10 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 - **Options API Methods**: 3 new methods, ~140 lines
 - **ScreenerBuilder Component**: 1 component, 902 lines
-- **Total Phase 3 Code**: ~1,050 lines added
-- **Files Modified**: 2 (alpacaService.js, ScreenerBuilder.tsx)
-- **Files Created**: 1 (PHASE3_PROGRESS.md)
+- **Scheduler Component**: 1 component, 420 lines
+- **Total Phase 3 Code**: ~1,470 lines added
+- **Files Modified**: 3 (alpacaService.js, ScreenerBuilder.tsx, App.tsx)
+- **Files Created**: 2 (Scheduler.tsx, PHASE3_PROGRESS.md)
 
 ---
 
@@ -266,10 +328,10 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 **Option C approach - One component at a time:**
 
-1. Test ScreenerBuilder thoroughly
-2. Fix any issues discovered
-3. Implement Scheduler UI component next
-4. Then Enhanced Settings
+1. ~~Test ScreenerBuilder thoroughly~~ ✅ Working!
+2. ~~Fix any issues discovered~~ ✅ Fixed JSX error
+3. ~~Implement Scheduler UI component~~ ✅ Complete!
+4. **Next:** Enhanced Settings UI (rate limits configuration)
 5. Then Scan Results Viewer
 6. Finally, Options screening backend logic
 
@@ -279,6 +341,9 @@ The ScreenerBuilder component is **fully functional and ready to test**!
 
 1. **16ad556** - feat(phase3): Add options API support to alpacaService
 2. **06a0ce4** - feat(phase3): Implement comprehensive ScreenerBuilder UI component
+3. **2e41cca** - fix(phase3): Escape > character in JSX for MACD Signal menu item
+4. **34f6c6d** - feat(phase3): Implement Scheduler UI component with full management
+5. **[this commit]** - docs(phase3): Update progress with Scheduler completion
 
 ---
 
@@ -292,6 +357,8 @@ All types are defined in `src/types/index.ts`:
 - `AssetType`
 
 ### Component Structure
+
+**ScreenerBuilder.tsx**
 ```
 ScreenerBuilder.tsx
 ├── State management (profiles, form data, dialogs)
@@ -302,18 +369,39 @@ ScreenerBuilder.tsx
 └── Profile list with actions
 ```
 
+**Scheduler.tsx**
+```
+Scheduler.tsx
+├── State management (status, profiles, history, loading)
+├── Auto-refresh (10 second interval)
+├── Scheduler status section with start/stop
+├── Scheduled profiles grid (Card components)
+├── Scan history list
+└── Manual scan triggers
+```
+
 ### Material-UI Components Used
+
+**ScreenerBuilder:**
 - Dialog, Accordion, Grid, TextField, Select
 - Switch, Slider, Chip, Tooltip, IconButton
 - Alert, List, Paper, Button
+
+**Scheduler:**
+- Card, CardContent, CardActions, Grid
+- List, ListItem, Chip, LinearProgress
+- Paper, Alert, IconButton, Button
 
 ### Styling
 - Uses Material-UI sx prop for inline styles
 - Responsive Grid layout (xs={6}, xs={12})
 - Consistent spacing (mb: 2, mt: 3, p: 2)
+- Color-coded status indicators
 
 ---
 
 **End of Phase 3 Progress Report**
 
-Ready to test! 🎉
+✅ **2 of 5 Major Components Complete!**
+
+Ready to test both ScreenerBuilder and Scheduler! 🎉
