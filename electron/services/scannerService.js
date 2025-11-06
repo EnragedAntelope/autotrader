@@ -91,14 +91,39 @@ class ScannerService {
 
   /**
    * Scan for stocks matching criteria
-   * Phase 1: Basic implementation - will be enhanced in Phase 3
+   * Phase 2: Full implementation with all parameters
    */
   async scanStocks(parameters, db) {
-    // TODO: Implement full stock screening logic in Phase 3
-    // For now, return empty array as placeholder
+    const symbols = await this.getWatchlist(db);
+    const matches = [];
 
-    console.log('Stock scanning logic - to be implemented in Phase 3');
-    return [];
+    console.log(`Scanning ${symbols.length} symbols with criteria:`, Object.keys(parameters));
+
+    for (const symbol of symbols) {
+      try {
+        // Get stock data with caching
+        const stockData = await this.getStockData(symbol, parameters, db);
+
+        if (!stockData) {
+          console.log(`Skipping ${symbol} - no data available`);
+          continue;
+        }
+
+        // Check if stock matches all criteria
+        if (this.matchesStockCriteria(stockData, parameters)) {
+          matches.push({
+            symbol,
+            data: stockData,
+          });
+          console.log(`✓ Match found: ${symbol}`);
+        }
+      } catch (error) {
+        console.error(`Error scanning ${symbol}:`, error.message);
+        // Continue with next symbol
+      }
+    }
+
+    return matches;
   }
 
   /**
@@ -143,17 +168,340 @@ class ScannerService {
   }
 
   /**
-   * Get a watchlist of symbols to scan
-   * For now, returns a default list - can be enhanced to use custom watchlists
+   * Get comprehensive stock data for screening
    */
-  async getWatchlist() {
-    // TODO: Implement custom watchlist feature
-    // For now, return common large-cap stocks
+  async getStockData(symbol, parameters, db) {
+    const needsFundamentals = this.requiresFundamentals(parameters);
+    const needsTechnicals = this.requiresTechnicals(parameters);
+
+    try {
+      // 1. Get quote data (always needed for price/volume)
+      const quote = await alpacaService.getQuote(symbol);
+      const bar = await alpacaService.getLatestBar(symbol);
+
+      if (!quote || !bar) {
+        return null;
+      }
+
+      const stockData = {
+        symbol,
+        price: quote.price,
+        volume: bar.volume,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        dayChange: bar.close - bar.open,
+        dayChangePercent: ((bar.close - bar.open) / bar.open) * 100,
+      };
+
+      // 2. Get fundamentals if needed (with caching)
+      if (needsFundamentals) {
+        const fundamentals = await this.getCachedFundamentals(symbol, db);
+        if (fundamentals) {
+          Object.assign(stockData, fundamentals);
+        }
+      }
+
+      // 3. Get technical indicators if needed
+      if (needsTechnicals) {
+        const technicals = await this.getTechnicalIndicators(symbol, db);
+        if (technicals) {
+          Object.assign(stockData, technicals);
+        }
+      }
+
+      return stockData;
+    } catch (error) {
+      console.error(`Error getting data for ${symbol}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Check if parameters require fundamental data
+   */
+  requiresFundamentals(parameters) {
+    return !!(
+      parameters.peMin ||
+      parameters.peMax ||
+      parameters.pbMin ||
+      parameters.pbMax ||
+      parameters.epsMin ||
+      parameters.epsMax ||
+      parameters.marketCapMin ||
+      parameters.marketCapMax ||
+      parameters.dividendYieldMin ||
+      parameters.dividendYieldMax ||
+      parameters.betaMin ||
+      parameters.betaMax ||
+      parameters.sectors ||
+      parameters.debtToEquityMax ||
+      parameters.currentRatioMin
+    );
+  }
+
+  /**
+   * Check if parameters require technical indicators
+   */
+  requiresTechnicals(parameters) {
+    return !!(
+      parameters.rsiMin ||
+      parameters.rsiMax ||
+      parameters.macdSignal ||
+      parameters.sma20Above ||
+      parameters.sma50Above ||
+      parameters.sma200Above
+    );
+  }
+
+  /**
+   * Get cached fundamentals or fetch if not cached
+   */
+  async getCachedFundamentals(symbol, db) {
+    // Check cache first (24 hour TTL for fundamentals)
+    const cached = db
+      .prepare(
+        `SELECT data, cached_at FROM market_data_cache
+         WHERE symbol = ? AND data_type = 'fundamentals'
+         AND expires_at > datetime('now')`
+      )
+      .get(symbol);
+
+    if (cached) {
+      return JSON.parse(cached.data);
+    }
+
+    // Fetch fresh data
+    try {
+      const fundamentals = await dataService.getFundamentals(symbol);
+
+      // Cache for 24 hours
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      db.prepare(
+        `INSERT OR REPLACE INTO market_data_cache (symbol, data_type, data, expires_at)
+         VALUES (?, 'fundamentals', ?, ?)`
+      ).run(symbol, JSON.stringify(fundamentals), expiresAt);
+
+      return fundamentals;
+    } catch (error) {
+      console.error(`Error fetching fundamentals for ${symbol}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get technical indicators (cached or calculated)
+   */
+  async getTechnicalIndicators(symbol, db) {
+    // Check cache (1 hour TTL for technicals)
+    const cached = db
+      .prepare(
+        `SELECT data FROM market_data_cache
+         WHERE symbol = ? AND data_type = 'technical'
+         AND expires_at > datetime('now')`
+      )
+      .get(symbol);
+
+    if (cached) {
+      return JSON.parse(cached.data);
+    }
+
+    // Calculate from historical data
+    try {
+      const bars = await alpacaService.getHistoricalBars(symbol, {
+        limit: 200, // Need 200 periods for SMA200
+        timeframe: '1Day',
+      });
+
+      if (!bars || bars.length < 14) {
+        return null; // Not enough data
+      }
+
+      const technicals = this.calculateTechnicalIndicators(bars);
+
+      // Cache for 1 hour
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      db.prepare(
+        `INSERT OR REPLACE INTO market_data_cache (symbol, data_type, data, expires_at)
+         VALUES (?, 'technical', ?, ?)`
+      ).run(symbol, JSON.stringify(technicals), expiresAt);
+
+      return technicals;
+    } catch (error) {
+      console.error(`Error calculating technicals for ${symbol}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Calculate technical indicators from price bars
+   */
+  calculateTechnicalIndicators(bars) {
+    const closes = bars.map((b) => b.close);
+
+    return {
+      rsi: this.calculateRSI(closes, 14),
+      sma20: this.calculateSMA(closes, 20),
+      sma50: this.calculateSMA(closes, 50),
+      sma200: this.calculateSMA(closes, 200),
+      macd: this.calculateMACD(closes),
+    };
+  }
+
+  /**
+   * Calculate RSI (Relative Strength Index)
+   */
+  calculateRSI(closes, period = 14) {
+    if (closes.length < period + 1) return null;
+
+    let gains = 0;
+    let losses = 0;
+
+    // Calculate initial average gain/loss
+    for (let i = 1; i <= period; i++) {
+      const change = closes[i] - closes[i - 1];
+      if (change > 0) gains += change;
+      else losses += Math.abs(change);
+    }
+
+    let avgGain = gains / period;
+    let avgLoss = losses / period;
+
+    // Smooth with remaining values
+    for (let i = period + 1; i < closes.length; i++) {
+      const change = closes[i] - closes[i - 1];
+      if (change > 0) {
+        avgGain = (avgGain * (period - 1) + change) / period;
+        avgLoss = (avgLoss * (period - 1)) / period;
+      } else {
+        avgGain = (avgGain * (period - 1)) / period;
+        avgLoss = (avgLoss * (period - 1) + Math.abs(change)) / period;
+      }
+    }
+
+    if (avgLoss === 0) return 100;
+    const rs = avgGain / avgLoss;
+    return 100 - 100 / (1 + rs);
+  }
+
+  /**
+   * Calculate Simple Moving Average
+   */
+  calculateSMA(closes, period) {
+    if (closes.length < period) return null;
+    const slice = closes.slice(-period);
+    return slice.reduce((sum, val) => sum + val, 0) / period;
+  }
+
+  /**
+   * Calculate MACD (Moving Average Convergence Divergence)
+   */
+  calculateMACD(closes) {
+    const ema12 = this.calculateEMA(closes, 12);
+    const ema26 = this.calculateEMA(closes, 26);
+
+    if (!ema12 || !ema26) return null;
+
+    const macdLine = ema12 - ema26;
+    // Signal line would need more data, simplified for now
+    return {
+      value: macdLine,
+      signal: macdLine > 0 ? 'bullish' : 'bearish',
+    };
+  }
+
+  /**
+   * Calculate Exponential Moving Average
+   */
+  calculateEMA(closes, period) {
+    if (closes.length < period) return null;
+
+    const k = 2 / (period + 1);
+    let ema = closes[0];
+
+    for (let i = 1; i < closes.length; i++) {
+      ema = closes[i] * k + ema * (1 - k);
+    }
+
+    return ema;
+  }
+
+  /**
+   * Get a watchlist of symbols to scan
+   * Checks database for custom watchlist, falls back to default
+   */
+  async getWatchlist(db) {
+    // TODO: Implement custom watchlist feature in database
+    // For Phase 2, using expanded default watchlist
+
     return [
-      'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA',
-      'TSLA', 'META', 'BRK.B', 'JPM', 'V',
-      'JNJ', 'WMT', 'PG', 'MA', 'HD',
-      'DIS', 'NFLX', 'ADBE', 'CRM', 'PYPL'
+      // Tech giants
+      'AAPL',
+      'MSFT',
+      'GOOGL',
+      'AMZN',
+      'NVDA',
+      'META',
+      'TSLA',
+      'NFLX',
+      'ADBE',
+      'CRM',
+      'ORCL',
+      'CSCO',
+      'INTC',
+      'AMD',
+      'QCOM',
+      // Financials
+      'JPM',
+      'BAC',
+      'WFC',
+      'GS',
+      'MS',
+      'C',
+      'V',
+      'MA',
+      'PYPL',
+      'AXP',
+      // Healthcare
+      'JNJ',
+      'UNH',
+      'PFE',
+      'ABBV',
+      'LLY',
+      'TMO',
+      'ABT',
+      'DHR',
+      'MRK',
+      'BMY',
+      // Consumer
+      'WMT',
+      'HD',
+      'MCD',
+      'NKE',
+      'SBUX',
+      'TGT',
+      'LOW',
+      'COST',
+      'PG',
+      'KO',
+      'PEP',
+      'PM',
+      // Industrials
+      'BA',
+      'CAT',
+      'GE',
+      'UPS',
+      'HON',
+      'MMM',
+      'LMT',
+      'RTX',
+      // Energy
+      'XOM',
+      'CVX',
+      'COP',
+      'SLB',
+      'EOG',
     ];
   }
 }
