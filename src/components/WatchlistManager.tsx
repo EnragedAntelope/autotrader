@@ -101,13 +101,29 @@ function WatchlistManager() {
 
   const handleAddSymbol = () => {
     const symbol = newSymbol.trim().toUpperCase();
-    if (symbol && !formData.symbols.includes(symbol)) {
-      setFormData({
-        ...formData,
-        symbols: [...formData.symbols, symbol],
-      });
-      setNewSymbol('');
+
+    // Validate symbol format (1-5 uppercase letters)
+    if (!symbol) {
+      setError('Symbol cannot be empty');
+      return;
     }
+
+    if (!/^[A-Z]{1,5}$/.test(symbol)) {
+      setError('Symbol must be 1-5 uppercase letters (e.g., AAPL, MSFT)');
+      return;
+    }
+
+    if (formData.symbols.includes(symbol)) {
+      setError(`${symbol} is already in this watchlist`);
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      symbols: [...formData.symbols, symbol],
+    });
+    setNewSymbol('');
+    setError(null);
   };
 
   const handleRemoveSymbol = (symbol: string) => {
@@ -124,6 +140,12 @@ function WatchlistManager() {
 
       if (!formData.name.trim()) {
         setError('Watchlist name is required');
+        return;
+      }
+
+      // Validate name doesn't contain problematic characters
+      if (!/^[a-zA-Z0-9\s\-_&()]+$/.test(formData.name)) {
+        setError('Watchlist name can only contain letters, numbers, spaces, and basic symbols (-, _, &, parentheses)');
         return;
       }
 
@@ -182,6 +204,17 @@ function WatchlistManager() {
           New Watchlist
         </Button>
       </Box>
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        <Typography variant="body2" gutterBottom>
+          <strong>What are Watchlists?</strong>
+        </Typography>
+        <Typography variant="body2">
+          Watchlists define which stocks to scan. When creating a screening profile, you can select a watchlist
+          to focus your scan on specific stocks (e.g., Tech Giants, Dividend Aristocrats). This helps you target
+          opportunities in sectors you understand and reduces API usage.
+        </Typography>
+      </Alert>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -351,6 +384,7 @@ function WatchlistManager() {
                   }
                 }}
                 placeholder="e.g., AAPL"
+                helperText="Enter ticker symbol (1-5 letters)"
                 size="small"
               />
               <Button variant="outlined" onClick={handleAddSymbol}>

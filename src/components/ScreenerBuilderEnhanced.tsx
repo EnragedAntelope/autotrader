@@ -732,11 +732,12 @@ function ScreenerBuilder() {
                           }
                           label={
                             <Box>
-                              <Typography variant="body2" color="error">
-                                Auto-Execute Trades (Use with caution!)
+                              <Typography variant="body2" color="error" fontWeight="bold">
+                                ⚠️ Auto-Execute Trades (REAL MONEY AT RISK!)
                               </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                Automatically place orders for matches
+                              <Typography variant="caption" color="error">
+                                WARNING: This will automatically place REAL orders when stocks match your criteria.
+                                Only enable after thorough testing in paper trading mode!
                               </Typography>
                             </Box>
                           }
