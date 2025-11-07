@@ -36,6 +36,10 @@ function createWindow() {
   // Set Content Security Policy
   const isDev = process.env.NODE_ENV === 'development';
 
+  // Note: CSP warning about 'unsafe-eval' is EXPECTED in development mode
+  // Vite's Hot Module Replacement (HMR) requires 'unsafe-eval' to function
+  // This warning will NOT appear in production builds
+  // See: https://vitejs.dev/guide/backend-integration.html
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -43,6 +47,7 @@ function createWindow() {
         'Content-Security-Policy': [
           isDev
             ? // Development CSP - allows Vite HMR with unsafe-eval
+              // WARNING: This will trigger a security warning in dev console - this is EXPECTED
               "default-src 'self'; " +
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173; " +
               "style-src 'self' 'unsafe-inline' http://localhost:5173; " +

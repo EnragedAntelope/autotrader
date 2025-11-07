@@ -315,6 +315,20 @@ If you continue to have problems with better-sqlite3 on Windows:
 
 ### General Troubleshooting
 
+#### Electron Security Warning (Content-Security-Policy) - EXPECTED IN DEV MODE
+
+**Warning**: "Electron Security Warning (Insecure Content-Security-Policy)"
+
+**This is NORMAL and EXPECTED in development mode!**
+
+**Explanation**:
+- Vite's Hot Module Replacement (HMR) requires `'unsafe-eval'` in development
+- This warning will **NOT** appear in production builds
+- The warning message itself states: "This warning will not show up once the app is packaged"
+- Production builds use a strict CSP without `'unsafe-eval'`
+
+**Action**: You can safely ignore this warning during development. No fix is needed.
+
 #### API Key Errors
 
 **Error**: "Missing Alpaca API credentials"
