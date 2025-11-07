@@ -55,6 +55,15 @@ contextBridge.exposeInMainWorld('electron', {
   runBacktest: (profileId, startDate, endDate, initialCapital, positionSize) =>
     ipcRenderer.invoke('run-backtest', profileId, startDate, endDate, initialCapital, positionSize),
 
+  // Watchlist Management
+  getWatchlists: () => ipcRenderer.invoke('get-watchlists'),
+  getWatchlist: (id) => ipcRenderer.invoke('get-watchlist', id),
+  createWatchlist: (watchlist) => ipcRenderer.invoke('create-watchlist', watchlist),
+  updateWatchlist: (id, watchlist) => ipcRenderer.invoke('update-watchlist', id, watchlist),
+  deleteWatchlist: (id) => ipcRenderer.invoke('delete-watchlist', id),
+  addSymbolToWatchlist: (watchlistId, symbol) => ipcRenderer.invoke('add-symbol-to-watchlist', watchlistId, symbol),
+  removeSymbolFromWatchlist: (watchlistId, symbol) => ipcRenderer.invoke('remove-symbol-from-watchlist', watchlistId, symbol),
+
   // Event listeners for notifications from main process
   onNotification: (callback) => {
     ipcRenderer.on('notification', (event, data) => callback(data));

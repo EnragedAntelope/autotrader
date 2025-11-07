@@ -1,18 +1,38 @@
 -- Alpaca Trading Scanner Database Schema
 
+-- Watchlists
+CREATE TABLE IF NOT EXISTS watchlists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  is_default BOOLEAN DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Watchlist Symbols
+CREATE TABLE IF NOT EXISTS watchlist_symbols (
+  watchlist_id INTEGER NOT NULL,
+  symbol TEXT NOT NULL,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (watchlist_id, symbol),
+  FOREIGN KEY (watchlist_id) REFERENCES watchlists(id) ON DELETE CASCADE
+);
+
 -- Screening Profiles
 CREATE TABLE IF NOT EXISTS screening_profiles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   asset_type TEXT CHECK(asset_type IN ('stock', 'call_option', 'put_option')) NOT NULL,
   parameters JSON NOT NULL,
+  watchlist_id INTEGER,
   schedule_enabled BOOLEAN DEFAULT 0,
   schedule_interval INTEGER DEFAULT 15, -- minutes
   schedule_market_hours_only BOOLEAN DEFAULT 1,
   auto_execute BOOLEAN DEFAULT 0,
   max_transaction_amount DECIMAL(10,2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (watchlist_id) REFERENCES watchlists(id) ON DELETE SET NULL
 );
 
 -- Scan Results

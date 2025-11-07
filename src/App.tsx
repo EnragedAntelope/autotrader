@@ -27,6 +27,7 @@ import {
   Search as SearchIcon,
   ShowChart as PositionsIcon,
   Assessment as BacktestIcon,
+  List as ListIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from './store';
@@ -41,10 +42,11 @@ import Backtesting from './components/Backtesting';
 import RiskManagement from './components/RiskManagement';
 import Settings from './components/Settings';
 import NotificationCenter from './components/NotificationCenter';
+import WatchlistManager from './components/WatchlistManager';
 
 const drawerWidth = 240;
 
-type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'positions' | 'backtest' | 'risk' | 'settings';
+type View = 'dashboard' | 'screener' | 'watchlists' | 'scheduler' | 'results' | 'trades' | 'positions' | 'backtest' | 'risk' | 'settings';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -70,6 +72,7 @@ function App() {
   const menuItems = [
     { id: 'dashboard' as View, label: 'Dashboard', icon: <DashboardIcon /> },
     { id: 'screener' as View, label: 'Screener Builder', icon: <FilterIcon /> },
+    { id: 'watchlists' as View, label: 'Watchlists', icon: <ListIcon /> },
     { id: 'scheduler' as View, label: 'Scheduler', icon: <ScheduleIcon /> },
     { id: 'results' as View, label: 'Scan Results', icon: <SearchIcon /> },
     { id: 'trades' as View, label: 'Trade History', icon: <TradingIcon /> },
@@ -90,6 +93,8 @@ function App() {
         return <Dashboard />;
       case 'screener':
         return <ScreenerBuilder />;
+      case 'watchlists':
+        return <WatchlistManager />;
       case 'scheduler':
         return <Scheduler />;
       case 'results':
