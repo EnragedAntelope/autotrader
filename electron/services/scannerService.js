@@ -170,14 +170,30 @@ class ScannerService {
     console.log(`Scanning ${underlyingSymbols.length} underlyings for ${optionType}s with criteria:`, Object.keys(parameters));
     console.log('Parameters:', JSON.stringify(parameters, null, 2));
 
+    // Calculate expiration date range for API filtering
+    const apiFilters = {
+      type: optionType,
+      status: 'active',
+    };
+
+    if (parameters.expirationMinDays || parameters.expirationMaxDays) {
+      const now = new Date();
+      if (parameters.expirationMinDays) {
+        const minDate = new Date(now.getTime() + parameters.expirationMinDays * 24 * 60 * 60 * 1000);
+        apiFilters.expiration_date_gte = minDate.toISOString().split('T')[0];
+      }
+      if (parameters.expirationMaxDays) {
+        const maxDate = new Date(now.getTime() + parameters.expirationMaxDays * 24 * 60 * 60 * 1000);
+        apiFilters.expiration_date_lte = maxDate.toISOString().split('T')[0];
+      }
+      console.log('API expiration filters:', apiFilters);
+    }
+
     for (const underlying of underlyingSymbols) {
       try {
         // Get option contracts for this underlying with rate limiting
         const optionContracts = await this.rateLimiter.executeRequest('alpaca', () =>
-          alpacaService.getOptionContracts(underlying, {
-            type: optionType,
-            status: 'active',
-          })
+          alpacaService.getOptionContracts(underlying, apiFilters)
         );
 
         if (!optionContracts || optionContracts.length === 0) {
@@ -395,7 +411,7 @@ class ScannerService {
    * Check if an option matches the given parameters
    */
   matchesOptionCriteria(optionData, parameters) {
-    const debug = true; // Set to true to see detailed filtering (ENABLED for debugging)
+    const debug = false; // Set to true to see detailed filtering (disabled - bugs fixed)
     if (debug) {
       console.log(`\n🔍 Checking ${optionData.symbol}:`, {
         strike: optionData.strike_price,
