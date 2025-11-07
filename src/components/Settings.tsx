@@ -376,31 +376,6 @@ function Settings() {
         </Grid>
       </Paper>
 
-      {/* Theme Settings */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Appearance
-        </Typography>
-        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-          Customize the application theme.
-        </Typography>
-
-        <FormControl component="fieldset">
-          <FormLabel component="legend">Theme</FormLabel>
-          <RadioGroup
-            value={settings.theme}
-            onChange={(e) => handleSettingChange('theme', e.target.value)}
-          >
-            <FormControlLabel value="light" control={<Radio />} label="Light Theme" />
-            <FormControlLabel value="dark" control={<Radio />} label="Dark Theme" />
-          </RadioGroup>
-        </FormControl>
-
-        <Alert severity="info" sx={{ mt: 2 }}>
-          Theme changes require an application restart to take effect.
-        </Alert>
-      </Paper>
-
       {/* API Configuration */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
