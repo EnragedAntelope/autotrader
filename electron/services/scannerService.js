@@ -161,7 +161,14 @@ class ScannerService {
     const matches = [];
     const optionType = assetType === 'call_option' ? 'call' : 'put';
 
+    // Diagnostic counters
+    let totalContracts = 0;
+    let filteredByExpiration = 0;
+    let checkedOptions = 0;
+    let nullDataCount = 0;
+
     console.log(`Scanning ${underlyingSymbols.length} underlyings for ${optionType}s with criteria:`, Object.keys(parameters));
+    console.log('Parameters:', JSON.stringify(parameters, null, 2));
 
     for (const underlying of underlyingSymbols) {
       try {
@@ -177,19 +184,38 @@ class ScannerService {
           continue;
         }
 
+        totalContracts += optionContracts.length;
         console.log(`Found ${optionContracts.length} ${optionType} contracts for ${underlying}`);
 
         // Filter contracts by expiration if specified
-        const filteredByExpiration = this.filterByExpiration(optionContracts, parameters);
+        const filtered = this.filterByExpiration(optionContracts, parameters);
+        filteredByExpiration += filtered.length;
 
         // Get detailed data for each filtered contract
-        for (const contract of filteredByExpiration.slice(0, 20)) {
+        for (const contract of filtered.slice(0, 20)) {
           // Limit to 20 per underlying to avoid too many API calls
           try {
             const optionData = await this.getOptionData(contract.symbol, contract, parameters, db);
 
             if (!optionData) {
+              nullDataCount++;
               continue;
+            }
+
+            checkedOptions++;
+
+            // Log first few options for debugging
+            if (checkedOptions <= 3) {
+              console.log(`Sample option data #${checkedOptions}:`, {
+                symbol: optionData.symbol,
+                strike: optionData.strike_price,
+                moneyness: optionData.moneyness,
+                delta: optionData.delta,
+                volume: optionData.volume,
+                openInterest: optionData.open_interest,
+                bid: optionData.bid,
+                ask: optionData.ask
+              });
             }
 
             // Check if option matches all criteria
@@ -216,6 +242,15 @@ class ScannerService {
         // Continue with next underlying
       }
     }
+
+    // Print diagnostic summary
+    console.log('\n=== Scan Diagnostics ===');
+    console.log(`Total contracts found: ${totalContracts}`);
+    console.log(`After expiration filter: ${filteredByExpiration}`);
+    console.log(`Options checked: ${checkedOptions}`);
+    console.log(`Options with null data: ${nullDataCount}`);
+    console.log(`Matches: ${matches.length}`);
+    console.log('========================\n');
 
     return matches;
   }
@@ -326,63 +361,140 @@ class ScannerService {
    * Check if an option matches the given parameters
    */
   matchesOptionCriteria(optionData, parameters) {
+    const debug = false; // Set to true to see detailed filtering
+    if (debug) {
+      console.log(`\n🔍 Checking ${optionData.symbol}:`, {
+        strike: optionData.strike_price,
+        moneyness: optionData.moneyness,
+        delta: optionData.delta,
+        volume: optionData.volume,
+        openInterest: optionData.open_interest,
+        bid: optionData.bid,
+        ask: optionData.ask
+      });
+    }
+
     // Strike price checks
-    if (parameters.strikeMin && optionData.strike_price < parameters.strikeMin) return false;
-    if (parameters.strikeMax && optionData.strike_price > parameters.strikeMax) return false;
+    if (parameters.strikeMin && optionData.strike_price < parameters.strikeMin) {
+      if (debug) console.log(`❌ Failed: strike ${optionData.strike_price} < min ${parameters.strikeMin}`);
+      return false;
+    }
+    if (parameters.strikeMax && optionData.strike_price > parameters.strikeMax) {
+      if (debug) console.log(`❌ Failed: strike ${optionData.strike_price} > max ${parameters.strikeMax}`);
+      return false;
+    }
 
     // Expiration already filtered in filterByExpiration
 
     // Greeks checks
     if (parameters.deltaMin !== undefined && optionData.delta !== null) {
-      if (optionData.delta < parameters.deltaMin) return false;
+      if (optionData.delta < parameters.deltaMin) {
+        if (debug) console.log(`❌ Failed: delta ${optionData.delta} < min ${parameters.deltaMin}`);
+        return false;
+      }
     }
     if (parameters.deltaMax !== undefined && optionData.delta !== null) {
-      if (optionData.delta > parameters.deltaMax) return false;
+      if (optionData.delta > parameters.deltaMax) {
+        if (debug) console.log(`❌ Failed: delta ${optionData.delta} > max ${parameters.deltaMax}`);
+        return false;
+      }
     }
 
     if (parameters.gammaMin !== undefined && optionData.gamma !== null) {
-      if (optionData.gamma < parameters.gammaMin) return false;
+      if (optionData.gamma < parameters.gammaMin) {
+        if (debug) console.log(`❌ Failed: gamma ${optionData.gamma} < min ${parameters.gammaMin}`);
+        return false;
+      }
     }
     if (parameters.gammaMax !== undefined && optionData.gamma !== null) {
-      if (optionData.gamma > parameters.gammaMax) return false;
+      if (optionData.gamma > parameters.gammaMax) {
+        if (debug) console.log(`❌ Failed: gamma ${optionData.gamma} > max ${parameters.gammaMax}`);
+        return false;
+      }
     }
 
     if (parameters.thetaMin !== undefined && optionData.theta !== null) {
-      if (optionData.theta < parameters.thetaMin) return false;
+      if (optionData.theta < parameters.thetaMin) {
+        if (debug) console.log(`❌ Failed: theta ${optionData.theta} < min ${parameters.thetaMin}`);
+        return false;
+      }
     }
     if (parameters.thetaMax !== undefined && optionData.theta !== null) {
-      if (optionData.theta > parameters.thetaMax) return false;
+      if (optionData.theta > parameters.thetaMax) {
+        if (debug) console.log(`❌ Failed: theta ${optionData.theta} > max ${parameters.thetaMax}`);
+        return false;
+      }
     }
 
     if (parameters.vegaMin !== undefined && optionData.vega !== null) {
-      if (optionData.vega < parameters.vegaMin) return false;
+      if (optionData.vega < parameters.vegaMin) {
+        if (debug) console.log(`❌ Failed: vega ${optionData.vega} < min ${parameters.vegaMin}`);
+        return false;
+      }
     }
     if (parameters.vegaMax !== undefined && optionData.vega !== null) {
-      if (optionData.vega > parameters.vegaMax) return false;
+      if (optionData.vega > parameters.vegaMax) {
+        if (debug) console.log(`❌ Failed: vega ${optionData.vega} > max ${parameters.vegaMax}`);
+        return false;
+      }
     }
 
     // Pricing checks
-    if (parameters.bidMin && optionData.bid < parameters.bidMin) return false;
-    if (parameters.bidMax && optionData.bid > parameters.bidMax) return false;
+    if (parameters.bidMin && optionData.bid < parameters.bidMin) {
+      if (debug) console.log(`❌ Failed: bid ${optionData.bid} < min ${parameters.bidMin}`);
+      return false;
+    }
+    if (parameters.bidMax && optionData.bid > parameters.bidMax) {
+      if (debug) console.log(`❌ Failed: bid ${optionData.bid} > max ${parameters.bidMax}`);
+      return false;
+    }
 
-    if (parameters.askMin && optionData.ask < parameters.askMin) return false;
-    if (parameters.askMax && optionData.ask > parameters.askMax) return false;
+    if (parameters.askMin && optionData.ask < parameters.askMin) {
+      if (debug) console.log(`❌ Failed: ask ${optionData.ask} < min ${parameters.askMin}`);
+      return false;
+    }
+    if (parameters.askMax && optionData.ask > parameters.askMax) {
+      if (debug) console.log(`❌ Failed: ask ${optionData.ask} > max ${parameters.askMax}`);
+      return false;
+    }
 
-    if (parameters.bidAskSpreadMax && optionData.bid_ask_spread > parameters.bidAskSpreadMax) return false;
+    if (parameters.bidAskSpreadMax && optionData.bid_ask_spread > parameters.bidAskSpreadMax) {
+      if (debug) console.log(`❌ Failed: spread ${optionData.bid_ask_spread} > max ${parameters.bidAskSpreadMax}`);
+      return false;
+    }
 
-    if (parameters.premiumMin && optionData.midpoint < parameters.premiumMin) return false;
-    if (parameters.premiumMax && optionData.midpoint > parameters.premiumMax) return false;
+    if (parameters.premiumMin && optionData.midpoint < parameters.premiumMin) {
+      if (debug) console.log(`❌ Failed: premium ${optionData.midpoint} < min ${parameters.premiumMin}`);
+      return false;
+    }
+    if (parameters.premiumMax && optionData.midpoint > parameters.premiumMax) {
+      if (debug) console.log(`❌ Failed: premium ${optionData.midpoint} > max ${parameters.premiumMax}`);
+      return false;
+    }
 
     // Volume and OI checks
-    if (parameters.openInterestMin && optionData.open_interest < parameters.openInterestMin) return false;
-    if (parameters.volumeMin && optionData.volume < parameters.volumeMin) return false;
-    if (parameters.volumeOIRatioMin && optionData.volume_oi_ratio < parameters.volumeOIRatioMin) return false;
+    if (parameters.openInterestMin && optionData.open_interest < parameters.openInterestMin) {
+      if (debug) console.log(`❌ Failed: OI ${optionData.open_interest} < min ${parameters.openInterestMin}`);
+      return false;
+    }
+    if (parameters.volumeMin && optionData.volume < parameters.volumeMin) {
+      if (debug) console.log(`❌ Failed: volume ${optionData.volume} < min ${parameters.volumeMin}`);
+      return false;
+    }
+    if (parameters.volumeOIRatioMin && optionData.volume_oi_ratio < parameters.volumeOIRatioMin) {
+      if (debug) console.log(`❌ Failed: vol/OI ratio ${optionData.volume_oi_ratio} < min ${parameters.volumeOIRatioMin}`);
+      return false;
+    }
 
     // Moneyness filter
     if (parameters.moneyness && parameters.moneyness !== 'any') {
-      if (optionData.moneyness !== parameters.moneyness) return false;
+      if (optionData.moneyness !== parameters.moneyness) {
+        if (debug) console.log(`❌ Failed: moneyness ${optionData.moneyness} !== ${parameters.moneyness}`);
+        return false;
+      }
     }
 
+    if (debug) console.log(`✅ MATCH! ${optionData.symbol}`);
     return true;
   }
 
