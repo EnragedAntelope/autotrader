@@ -127,6 +127,10 @@ function setupIPC() {
     return profiles.map(p => ({
       ...p,
       parameters: JSON.parse(p.parameters),
+      // Convert SQLite integers (0/1) to booleans for React components
+      schedule_enabled: Boolean(p.schedule_enabled),
+      schedule_market_hours_only: Boolean(p.schedule_market_hours_only),
+      auto_execute: Boolean(p.auto_execute),
     }));
   });
 

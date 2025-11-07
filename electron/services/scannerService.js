@@ -271,14 +271,48 @@ class ScannerService {
       ? new Date(now.getTime() + parameters.expirationMaxDays * 24 * 60 * 60 * 1000)
       : null;
 
-    return contracts.filter((contract) => {
+    console.log('Expiration filter:', {
+      now: now.toISOString().split('T')[0],
+      minDate: minDate ? minDate.toISOString().split('T')[0] : null,
+      maxDate: maxDate ? maxDate.toISOString().split('T')[0] : null,
+      totalContracts: contracts.length,
+      sampleExpiration: contracts[0]?.expiration_date
+    });
+
+    let invalidDateCount = 0;
+    let tooEarlyCount = 0;
+    let tooLateCount = 0;
+
+    const filtered = contracts.filter((contract) => {
       const expDate = new Date(contract.expiration_date);
 
-      if (minDate && expDate < minDate) return false;
-      if (maxDate && expDate > maxDate) return false;
+      // Check for invalid date parsing
+      if (isNaN(expDate.getTime())) {
+        invalidDateCount++;
+        return false;
+      }
+
+      if (minDate && expDate < minDate) {
+        tooEarlyCount++;
+        return false;
+      }
+      if (maxDate && expDate > maxDate) {
+        tooLateCount++;
+        return false;
+      }
 
       return true;
     });
+
+    console.log(`Expiration filter results:`, {
+      input: contracts.length,
+      output: filtered.length,
+      invalidDates: invalidDateCount,
+      tooEarly: tooEarlyCount,
+      tooLate: tooLateCount
+    });
+
+    return filtered;
   }
 
   /**
