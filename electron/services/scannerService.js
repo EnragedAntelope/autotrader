@@ -736,15 +736,16 @@ class ScannerService {
   }
 
   /**
-   * Check if parameters require technical indicators
+   * Check if parameters require technical indicators (historical bars needed)
+   * Note: minPercentChange/maxPercentChange are NOT included here because
+   * daily % change can be calculated from the latest bar (free on Alpaca)
+   * without needing historical SIP data
    */
   requiresTechnicals(parameters) {
     return !!(
-      // NEW parameter names
+      // NEW parameter names (only complex technicals requiring historical data)
       parameters.minRSI ||
       parameters.maxRSI ||
-      parameters.minPercentChange ||
-      parameters.maxPercentChange ||
       // Legacy parameter names (backwards compatibility)
       parameters.rsiMin ||
       parameters.rsiMax ||
