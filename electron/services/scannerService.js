@@ -361,7 +361,7 @@ class ScannerService {
    * Check if an option matches the given parameters
    */
   matchesOptionCriteria(optionData, parameters) {
-    const debug = false; // Set to true to see detailed filtering
+    const debug = true; // Set to true to see detailed filtering (ENABLED for debugging)
     if (debug) {
       console.log(`\n🔍 Checking ${optionData.symbol}:`, {
         strike: optionData.strike_price,

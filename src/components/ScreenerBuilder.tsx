@@ -112,7 +112,8 @@ function ScreenerBuilder() {
       ...formData,
       parameters: {
         ...formData.parameters,
-        [param]: value === '' ? undefined : value,
+        // Filter out empty strings and NaN values (from parseInt/parseFloat on empty fields)
+        [param]: value === '' || (typeof value === 'number' && isNaN(value)) ? undefined : value,
       },
     });
   };
