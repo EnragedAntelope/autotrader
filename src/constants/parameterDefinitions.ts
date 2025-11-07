@@ -643,6 +643,19 @@ export const DEFAULT_PROFILES = {
       country: 'US',
     },
   },
+  fastScan: {
+    name: 'Fast Scan (Price & Volume)',
+    asset_type: 'stock',
+    description: 'Quick scan using only Alpaca data - no Alpha Vantage calls, completes in seconds',
+    parameters: {
+      minPrice: 5,
+      maxPrice: 500,
+      minVolume: 500000,
+      maxVolume: 100000000,
+      minPercentChange: -5,
+      maxPercentChange: 10,
+    },
+  },
   highDeltaCalls: {
     name: 'High Delta Call Options',
     asset_type: 'option',
