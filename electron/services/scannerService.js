@@ -208,8 +208,8 @@ class ScannerService {
         filteredByExpiration += filtered.length;
 
         // Get detailed data for each filtered contract
-        for (const contract of filtered.slice(0, 20)) {
-          // Limit to 20 per underlying to avoid too many API calls
+        for (const contract of filtered.slice(0, 5)) {
+          // Limit to 5 per underlying to avoid rate limits (can be increased if you have unlimited data plan)
           try {
             const optionData = await this.getOptionData(contract.symbol, contract, parameters, db);
 
