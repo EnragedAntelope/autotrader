@@ -13,6 +13,7 @@ const ScannerService = require('./services/scannerService');
 const SchedulerService = require('./services/schedulerService');
 const TradeService = require('./services/tradeService');
 const PositionMonitorService = require('./services/positionMonitorService');
+const BacktestService = require('./services/backtestService');
 
 // Database instance
 let db;
@@ -416,6 +417,34 @@ function setupIPC() {
       return await DataService.getMarketData(symbol);
     } catch (error) {
       console.error('Error getting market data:', error);
+      throw error;
+    }
+  });
+
+  // Backtesting
+  ipcMain.handle('run-backtest', async (event, profileId, startDate, endDate, initialCapital, positionSize) => {
+    try {
+      const profile = db.prepare('SELECT * FROM screening_profiles WHERE id = ?').get(profileId);
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
+
+      const profileData = {
+        ...profile,
+        parameters: JSON.parse(profile.parameters),
+      };
+
+      const results = await BacktestService.runBacktest(
+        profileData,
+        new Date(startDate),
+        new Date(endDate),
+        initialCapital || 10000,
+        positionSize || 1000
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error running backtest:', error);
       throw error;
     }
   });

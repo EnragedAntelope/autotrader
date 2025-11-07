@@ -51,6 +51,10 @@ contextBridge.exposeInMainWorld('electron', {
   // Statistics
   getDailyStats: (date) => ipcRenderer.invoke('get-daily-stats', date),
 
+  // Backtesting
+  runBacktest: (profileId, startDate, endDate, initialCapital, positionSize) =>
+    ipcRenderer.invoke('run-backtest', profileId, startDate, endDate, initialCapital, positionSize),
+
   // Event listeners for notifications from main process
   onNotification: (callback) => {
     ipcRenderer.on('notification', (event, data) => callback(data));
