@@ -552,30 +552,76 @@ class ScannerService {
    * Check if a stock matches the given parameters
    */
   matchesStockCriteria(stockData, parameters) {
-    // Price checks
+    // Price checks (NEW parameter names: minPrice, maxPrice)
+    if (parameters.minPrice && stockData.price < parameters.minPrice) return false;
+    if (parameters.maxPrice && stockData.price > parameters.maxPrice) return false;
+
+    // Volume checks (NEW: minVolume, maxVolume)
+    if (parameters.minVolume && stockData.volume < parameters.minVolume) return false;
+    if (parameters.maxVolume && stockData.volume > parameters.maxVolume) return false;
+
+    // Market Cap checks (NEW: minMarketCap, maxMarketCap - in millions)
+    if (parameters.minMarketCap && stockData.marketCap < parameters.minMarketCap * 1000000) return false;
+    if (parameters.maxMarketCap && stockData.marketCap > parameters.maxMarketCap * 1000000) return false;
+
+    // P/E Ratio checks (NEW: minPERatio, maxPERatio)
+    if (parameters.minPERatio && (!stockData.pe || stockData.pe < parameters.minPERatio)) return false;
+    if (parameters.maxPERatio && (!stockData.pe || stockData.pe > parameters.maxPERatio)) return false;
+
+    // P/B Ratio checks (NEW: minPBRatio, maxPBRatio)
+    if (parameters.minPBRatio && (!stockData.pb || stockData.pb < parameters.minPBRatio)) return false;
+    if (parameters.maxPBRatio && (!stockData.pb || stockData.pb > parameters.maxPBRatio)) return false;
+
+    // Current Ratio checks (NEW: minCurrentRatio, maxCurrentRatio)
+    if (parameters.minCurrentRatio && (!stockData.currentRatio || stockData.currentRatio < parameters.minCurrentRatio)) return false;
+    if (parameters.maxCurrentRatio && (!stockData.currentRatio || stockData.currentRatio > parameters.maxCurrentRatio)) return false;
+
+    // Quick Ratio check (NEW: minQuickRatio)
+    if (parameters.minQuickRatio && (!stockData.quickRatio || stockData.quickRatio < parameters.minQuickRatio)) return false;
+
+    // Debt to Equity check (NEW: maxDebtToEquity)
+    if (parameters.maxDebtToEquity && (!stockData.debtToEquity || stockData.debtToEquity > parameters.maxDebtToEquity)) return false;
+
+    // ROE checks (NEW: minROE)
+    if (parameters.minROE && (!stockData.roe || stockData.roe < parameters.minROE)) return false;
+
+    // ROA checks (NEW: minROA)
+    if (parameters.minROA && (!stockData.roa || stockData.roa < parameters.minROA)) return false;
+
+    // Dividend Yield checks (NEW: minDividendYield, maxDividendYield)
+    if (parameters.minDividendYield && (!stockData.dividendYield || stockData.dividendYield < parameters.minDividendYield)) return false;
+    if (parameters.maxDividendYield && (!stockData.dividendYield || stockData.dividendYield > parameters.maxDividendYield)) return false;
+
+    // Beta checks (NEW: minBeta, maxBeta)
+    if (parameters.minBeta && (!stockData.beta || stockData.beta < parameters.minBeta)) return false;
+    if (parameters.maxBeta && (!stockData.beta || stockData.beta > parameters.maxBeta)) return false;
+
+    // RSI checks (NEW: minRSI, maxRSI)
+    if (parameters.minRSI && (!stockData.rsi || stockData.rsi < parameters.minRSI)) return false;
+    if (parameters.maxRSI && (!stockData.rsi || stockData.rsi > parameters.maxRSI)) return false;
+
+    // Percent change checks (NEW: minPercentChange, maxPercentChange)
+    if (parameters.minPercentChange && stockData.dayChangePercent < parameters.minPercentChange) return false;
+    if (parameters.maxPercentChange && stockData.dayChangePercent > parameters.maxPercentChange) return false;
+
+    // Country filter (NEW: country)
+    if (parameters.country && stockData.country && stockData.country !== parameters.country) return false;
+
+    // Sector filter (NEW: sector)
+    if (parameters.sector && stockData.sector && stockData.sector !== parameters.sector) return false;
+
+    // Legacy parameter support for backwards compatibility
+    // OLD parameter names (keep for existing profiles)
     if (parameters.priceMin && stockData.price < parameters.priceMin) return false;
     if (parameters.priceMax && stockData.price > parameters.priceMax) return false;
-
-    // Volume checks
     if (parameters.volumeMin && stockData.volume < parameters.volumeMin) return false;
     if (parameters.volumeMax && stockData.volume > parameters.volumeMax) return false;
-
-    // Fundamental checks
     if (parameters.peMin && stockData.pe < parameters.peMin) return false;
     if (parameters.peMax && stockData.pe > parameters.peMax) return false;
-
     if (parameters.marketCapMin && stockData.marketCap < parameters.marketCapMin) return false;
     if (parameters.marketCapMax && stockData.marketCap > parameters.marketCapMax) return false;
 
-    // Technical indicator checks
-    if (parameters.rsiMin && stockData.rsi < parameters.rsiMin) return false;
-    if (parameters.rsiMax && stockData.rsi > parameters.rsiMax) return false;
-
-    // Sector filter
-    if (parameters.sectors && parameters.sectors.length > 0) {
-      if (!parameters.sectors.includes(stockData.sector)) return false;
-    }
-
+    // All checks passed
     return true;
   }
 
@@ -638,6 +684,26 @@ class ScannerService {
    */
   requiresFundamentals(parameters) {
     return !!(
+      // NEW parameter names
+      parameters.minPERatio ||
+      parameters.maxPERatio ||
+      parameters.minPBRatio ||
+      parameters.maxPBRatio ||
+      parameters.minMarketCap ||
+      parameters.maxMarketCap ||
+      parameters.minDividendYield ||
+      parameters.maxDividendYield ||
+      parameters.minBeta ||
+      parameters.maxBeta ||
+      parameters.minCurrentRatio ||
+      parameters.maxCurrentRatio ||
+      parameters.minQuickRatio ||
+      parameters.maxDebtToEquity ||
+      parameters.minROE ||
+      parameters.minROA ||
+      parameters.country ||
+      parameters.sector ||
+      // Legacy parameter names (backwards compatibility)
       parameters.peMin ||
       parameters.peMax ||
       parameters.pbMin ||
@@ -661,6 +727,12 @@ class ScannerService {
    */
   requiresTechnicals(parameters) {
     return !!(
+      // NEW parameter names
+      parameters.minRSI ||
+      parameters.maxRSI ||
+      parameters.minPercentChange ||
+      parameters.maxPercentChange ||
+      // Legacy parameter names (backwards compatibility)
       parameters.rsiMin ||
       parameters.rsiMax ||
       parameters.macdSignal ||
