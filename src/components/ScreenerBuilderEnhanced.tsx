@@ -750,8 +750,8 @@ function ScreenerBuilder() {
                   <ListItem key={index}>
                     <ListItemText
                       primary={match.symbol}
-                      secondary={`Price: $${match.price?.toFixed(2) || 'N/A'} | Volume: ${
-                        match.volume?.toLocaleString() || 'N/A'
+                      secondary={`Price: $${match.data?.price?.toFixed(2) || 'N/A'} | Volume: ${
+                        match.data?.volume?.toLocaleString() || 'N/A'
                       }`}
                     />
                   </ListItem>
