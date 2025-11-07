@@ -28,6 +28,12 @@ class ScannerService {
       this.rateLimiter = new RateLimiter(db);
       console.log('ScannerService initialized with rate limiter');
     }
+
+    // Also initialize dataService with the same database
+    const dataServiceInstance = getDataService();
+    if (dataServiceInstance && typeof dataServiceInstance.initialize === 'function') {
+      dataServiceInstance.initialize(db);
+    }
   }
 
   /**

@@ -583,12 +583,13 @@ export const DEFAULT_PROFILES = {
     description: 'Conservative value investing focused on financial health and undervaluation',
     parameters: {
       minPrice: 5,
-      maxPrice: 200,
+      maxPrice: 100,
       minVolume: 500000,
       minMarketCap: 1000, // $1B
       maxPERatio: 20,
       maxPBRatio: 1,
       minCurrentRatio: 1,
+      maxCurrentRatio: 3,
       maxDebtToEquity: 1,
       minQuickRatio: 1,
       minROE: 15,
