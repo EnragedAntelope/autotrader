@@ -12,6 +12,7 @@ const DataService = require('./services/dataService');
 const ScannerService = require('./services/scannerService');
 const SchedulerService = require('./services/schedulerService');
 const TradeService = require('./services/tradeService');
+const PositionMonitorService = require('./services/positionMonitorService');
 
 // Database instance
 let db;
@@ -431,6 +432,10 @@ app.whenReady().then(() => {
   setupIPC();
   createWindow();
 
+  // Start background services
+  PositionMonitorService.start(db);
+  console.log('Position monitoring service started');
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -446,8 +451,9 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   // Cleanup
+  PositionMonitorService.stop();
+  SchedulerService.stop();
   if (db) {
     db.close();
   }
-  SchedulerService.stop();
 });
