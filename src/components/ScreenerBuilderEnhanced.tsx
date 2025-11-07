@@ -236,6 +236,7 @@ function ScreenerBuilder() {
 
   const handleLoadTemplate = (templateKey: keyof typeof DEFAULT_PROFILES) => {
     const template = DEFAULT_PROFILES[templateKey];
+    setEditingProfile(null); // Clear any existing profile being edited
     setFormData({
       name: template.name,
       asset_type: template.asset_type as AssetType,
@@ -247,6 +248,7 @@ function ScreenerBuilder() {
       max_transaction_amount: 1000,
     });
     setTemplateMenuAnchor(null);
+    setDialogOpen(true); // Open the dialog to show the template
     setSuccess(`Loaded template: ${template.name}`);
     setTimeout(() => setSuccess(null), 3000);
   };
