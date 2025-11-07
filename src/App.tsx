@@ -26,23 +26,25 @@ import {
   Notifications as NotificationsIcon,
   Search as SearchIcon,
   ShowChart as PositionsIcon,
+  Assessment as BacktestIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from './store';
 import { fetchAccountInfo, fetchTradingMode } from './store/accountSlice';
 import Dashboard from './components/Dashboard';
-import ScreenerBuilder from './components/ScreenerBuilder';
+import ScreenerBuilder from './components/ScreenerBuilderEnhanced';
 import Scheduler from './components/Scheduler';
 import ScanResults from './components/ScanResults';
 import TradeHistory from './components/TradeHistory';
 import ActivePositions from './components/ActivePositions';
+import Backtesting from './components/Backtesting';
 import RiskManagement from './components/RiskManagement';
 import Settings from './components/Settings';
 import NotificationCenter from './components/NotificationCenter';
 
 const drawerWidth = 240;
 
-type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'positions' | 'risk' | 'settings';
+type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'positions' | 'backtest' | 'risk' | 'settings';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -72,6 +74,7 @@ function App() {
     { id: 'results' as View, label: 'Scan Results', icon: <SearchIcon /> },
     { id: 'trades' as View, label: 'Trade History', icon: <TradingIcon /> },
     { id: 'positions' as View, label: 'Active Positions', icon: <PositionsIcon /> },
+    { id: 'backtest' as View, label: 'Backtesting', icon: <BacktestIcon /> },
     { id: 'risk' as View, label: 'Risk Management', icon: <AccountIcon /> },
     { id: 'settings' as View, label: 'Settings', icon: <SettingsIcon /> },
   ];
@@ -95,6 +98,8 @@ function App() {
         return <TradeHistory />;
       case 'positions':
         return <ActivePositions />;
+      case 'backtest':
+        return <Backtesting />;
       case 'risk':
         return <RiskManagement />;
       case 'settings':

@@ -10,13 +10,45 @@ A cross-platform desktop application for automated stock and options screening w
 
 ## Features
 
-- **Automated Screening**: Create custom screening profiles for stocks and options with multiple parameters
-- **Scheduled Scanning**: Automatically run scans at specified intervals during market hours
-- **Risk Management**: Built-in risk controls including transaction limits, daily/weekly spend limits, and position limits
-- **Position Monitoring**: Automatic stop-loss and take-profit execution
-- **Trade History**: Comprehensive logging of all trades with P/L tracking
-- **Paper & Live Trading**: Switch between paper (simulated) and live trading modes
-- **Cross-Platform**: Works on Windows, macOS, and Linux
+### 📊 Screening & Analysis
+- **Advanced Parameter Library**: 30+ fundamental ratios (P/E, P/B, D/E, Current Ratio, ROE, etc.)
+- **Technical Indicators**: RSI, Beta, momentum, volume analysis
+- **Options Greeks**: Delta, gamma, theta, vega, IV with educational tooltips
+- **7 Pre-Built Templates**: Value stocks, growth stocks, dividend stocks, momentum, high-delta calls, ATM calls, protective puts
+- **Help Tooltips**: Every parameter includes educational content and suggested "good" values
+- **Input Validation**: Prevents invalid data entry with real-time feedback
+
+### 📈 Backtesting & Strategy Validation
+- **Historical Simulation**: Test strategies against past market data
+- **Performance Metrics**: Win rate, Sharpe ratio, max drawdown, profit factor
+- **Trade-by-Trade Analysis**: Detailed trade history with entry/exit points
+- **Configurable Parameters**: Adjust starting capital, position size, time periods
+
+### 🤖 Automation & Trading
+- **Automated Screening**: Create custom screening profiles for stocks and options
+- **Scheduled Scanning**: Run scans at specified intervals during market hours
+- **Auto-Execution**: Optional automatic order placement (use with caution!)
+- **Position Monitoring**: Real-time P/L tracking with auto-refresh
+- **Smart Stop-Loss/Take-Profit**: Automatic position exits when thresholds hit
+
+### 🛡️ Risk Management
+- **Transaction Limits**: Maximum amount per trade
+- **Daily/Weekly Spend Limits**: Prevent over-trading
+- **Position Limits**: Cap on open positions
+- **Default Risk Levels**: Set standard stop-loss and take-profit percentages
+- **Duplicate Position Control**: Allow or prevent multiple positions in same symbol
+
+### 📊 Monitoring & Reporting
+- **Active Positions Dashboard**: Real-time monitoring with P/L calculations
+- **Trade History**: Complete log with filtering by symbol, status, date
+- **Statistics Cards**: At-a-glance performance metrics
+- **Position Alerts**: Notifications for stop-loss and take-profit triggers
+
+### 🎨 User Experience
+- **Dark Theme**: Toggle between light and dark modes (saved to localStorage)
+- **Educational UI**: Contextual help throughout the application
+- **Responsive Design**: Clean Material-UI interface
+- **Cross-Platform**: Windows, macOS, and Linux support
 
 ## Tech Stack
 
@@ -427,9 +459,53 @@ If you continue to have problems with better-sqlite3 on Windows:
 - Position statistics and P/L tracking
 - Seamless integration with existing trading system
 
-### 📋 Planned Future Phases
-- **Phase 5**: Backtesting and strategy analysis
-- **Phase 6**: Polish features (notifications, dark theme, charts)
+### ✅ Phase 5: Enhanced Screening & Backtesting (COMPLETE!)
+**Comprehensive parameter library and strategy validation:**
+- ✅ Help tooltips on ALL parameters with educational content
+- ✅ Suggested "good" values for every parameter
+- ✅ Comprehensive input validation (min/max, type checking)
+- ✅ 30+ fundamental analysis parameters:
+  - Current Ratio, Quick Ratio (liquidity)
+  - D/E Ratio, P/E Ratio, P/B Ratio (valuation)
+  - ROE, ROA (profitability)
+  - Dividend Yield, Beta, RSI (technical + yield)
+  - Market Cap ranges, Sector/Country filters
+- ✅ 15+ additional option parameters
+- ✅ 7 default screening templates:
+  - Value Stocks (Conservative)
+  - Growth Stocks
+  - Dividend Income Stocks
+  - Momentum Stocks
+  - High Delta Calls
+  - At-The-Money Calls
+  - Protective Puts
+- ✅ Backtesting engine with historical simulation (305 lines)
+- ✅ Performance metrics (Win Rate, Sharpe Ratio, Max Drawdown)
+- ✅ Trade-by-trade analysis
+- ✅ Profit Factor, Average Win/Loss calculations
+- ✅ Configurable backtest period and capital
+
+**Total Phase 5 additions:** ~1,200 lines of educational and analytical code
+
+**Key Improvements:**
+- User-friendly educational help system
+- Prevents invalid inputs before submission
+- Professional templates for quick start
+- Evidence-based strategy validation
+- Historical performance metrics
+
+### ✅ Phase 6: Polish & User Experience (COMPLETE!)
+**Professional UI polish and theming:**
+- ✅ Dark theme toggle with localStorage persistence
+- ✅ Beautiful light/dark color schemes
+- ✅ Smooth theme transitions
+- ✅ Theme-aware component styling
+- ✅ Professional color palette
+- ✅ Enhanced visual hierarchy
+
+**Total Phase 6 additions:** ~150 lines
+
+## 🎉 Application Complete!
 
 ## Security Notes
 

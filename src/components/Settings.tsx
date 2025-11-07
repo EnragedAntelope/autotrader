@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Typography,
@@ -27,11 +27,14 @@ import {
 import {
   Save as SaveIcon,
   Refresh as RefreshIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { setTradingMode } from '../store/accountSlice';
 import { TradingMode } from '../types';
+import { ThemeContext } from '../theme/ThemeContext';
 
 interface AppSettings {
   theme: string;
@@ -47,6 +50,7 @@ interface AppSettings {
 function Settings() {
   const dispatch = useDispatch<AppDispatch>();
   const { tradingMode } = useSelector((state: RootState) => state.account);
+  const { mode, toggleTheme } = useContext(ThemeContext);
   const [selectedMode, setSelectedMode] = useState<TradingMode>(tradingMode);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -160,6 +164,30 @@ function Settings() {
           {error}
         </Alert>
       )}
+
+      {/* Theme Toggle */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Appearance
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography variant="body1">Theme Mode</Typography>
+            <Typography variant="body2" color="textSecondary">
+              Switch between light and dark theme
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LightModeIcon color={mode === 'light' ? 'primary' : 'disabled'} />
+            <Switch
+              checked={mode === 'dark'}
+              onChange={toggleTheme}
+              color="primary"
+            />
+            <DarkModeIcon color={mode === 'dark' ? 'primary' : 'disabled'} />
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Trading Mode */}
       <Paper sx={{ p: 3, mb: 3 }}>
