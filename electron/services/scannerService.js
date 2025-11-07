@@ -131,13 +131,18 @@ class ScannerService {
 
     console.log(`Scanning ${symbols.length} symbols with criteria:`, Object.keys(parameters));
 
-    for (const symbol of symbols) {
+    for (let i = 0; i < symbols.length; i++) {
+      const symbol = symbols[i];
+      const progress = `[${i + 1}/${symbols.length}]`;
+
       try {
+        console.log(`${progress} Scanning ${symbol}...`);
+
         // Get stock data with caching
         const stockData = await this.getStockData(symbol, parameters, db);
 
         if (!stockData) {
-          console.log(`Skipping ${symbol} - no data available`);
+          console.log(`${progress} Skipping ${symbol} - no data available`);
           continue;
         }
 
@@ -147,10 +152,12 @@ class ScannerService {
             symbol,
             data: stockData,
           });
-          console.log(`✓ Match found: ${symbol}`);
+          console.log(`${progress} ✓ Match found: ${symbol}`);
+        } else {
+          console.log(`${progress} ✗ ${symbol} did not match criteria`);
         }
       } catch (error) {
-        console.error(`Error scanning ${symbol}:`, error.message);
+        console.error(`${progress} Error scanning ${symbol}:`, error.message);
         // Continue with next symbol
       }
     }

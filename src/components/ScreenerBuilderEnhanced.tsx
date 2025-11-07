@@ -445,6 +445,12 @@ function ScreenerBuilder() {
         <MenuItem onClick={() => handleLoadTemplate('momentumStocks')}>
           <ListItemText primary="Momentum Stocks" secondary="Strong price momentum" />
         </MenuItem>
+        <MenuItem onClick={() => handleLoadTemplate('fastScan')}>
+          <ListItemText
+            primary="Fast Scan (Price & Volume)"
+            secondary="⚡ No rate limits - completes in seconds"
+          />
+        </MenuItem>
         <Divider />
         <MenuItem disabled>
           <Typography variant="caption" color="textSecondary">
