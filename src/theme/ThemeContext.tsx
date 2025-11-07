@@ -15,13 +15,24 @@ export const ThemeContext = createContext<ThemeContextType>({
 export function CustomThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<PaletteMode>(() => {
     // Load saved theme from localStorage
-    const saved = localStorage.getItem('theme-mode');
-    return (saved as PaletteMode) || 'light';
+    try {
+      const saved = localStorage.getItem('theme-mode');
+      console.log('Loading theme from localStorage:', saved);
+      return (saved as PaletteMode) || 'light';
+    } catch (error) {
+      console.error('Error loading theme from localStorage:', error);
+      return 'light';
+    }
   });
 
   useEffect(() => {
     // Save theme to localStorage when it changes
-    localStorage.setItem('theme-mode', mode);
+    try {
+      console.log('Saving theme to localStorage:', mode);
+      localStorage.setItem('theme-mode', mode);
+    } catch (error) {
+      console.error('Error saving theme to localStorage:', error);
+    }
   }, [mode]);
 
   const toggleTheme = () => {
