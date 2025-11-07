@@ -11,7 +11,7 @@ A cross-platform desktop application for automated stock and options screening w
 ## Features
 
 ### 📊 Screening & Analysis
-- **Advanced Parameter Library**: 30+ fundamental ratios (P/E, P/B, D/E, Current Ratio, ROE, etc.)
+- **Advanced Parameter Library**: 45+ parameters including fundamental ratios (P/E, P/B, D/E, Current Ratio, ROE, etc.)
 - **Technical Indicators**: RSI, Beta, momentum, volume analysis
 - **Options Greeks**: Delta, gamma, theta, vega, IV with educational tooltips
 - **7 Pre-Built Templates**: Value stocks, growth stocks, dividend stocks, momentum, high-delta calls, ATM calls, protective puts
@@ -40,6 +40,7 @@ A cross-platform desktop application for automated stock and options screening w
 
 ### 📊 Monitoring & Reporting
 - **Active Positions Dashboard**: Real-time monitoring with P/L calculations
+- **Comprehensive P/L Statistics**: Total P/L (realized + unrealized), win rate, average win/loss, largest win/loss
 - **Trade History**: Complete log with filtering by symbol, status, date
 - **Statistics Cards**: At-a-glance performance metrics
 - **Position Alerts**: Notifications for stop-loss and take-profit triggers
@@ -59,69 +60,51 @@ A cross-platform desktop application for automated stock and options screening w
 - **Charting**: Recharts
 - **Trading API**: Alpaca Markets
 
-## Prerequisites
-
-- **Node.js**: Version 18.x, 20.x, or 22.x LTS (⚠️ **NOT v23.x** - see [Windows Installation](#windows-specific-installation) below)
-- **npm**: Version 9.x or higher
-- **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
-- **Alpha Vantage API Key** (Optional): For fundamental data. Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
-
-### Windows Additional Requirements
-
-- **Visual Studio Build Tools** (for native module compilation):
-  - Download from: https://visualstudio.microsoft.com/downloads/
-  - Select "Desktop development with C++" workload
-  - **OR** use the automated installer:
-    ```bash
-    npm install --global windows-build-tools
-    ```
+---
 
 ## Installation
 
-### 1. Clone the Repository
+Choose your operating system:
+- [Linux/macOS Installation](#linuxmacos-installation)
+- [Windows Installation](#windows-installation)
+
+---
+
+## Linux/macOS Installation
+
+### Prerequisites
+
+- **Node.js**: Version 18.x, 20.x, or 22.x LTS
+- **npm**: Version 9.x or higher
+- **Python**: Version 3.8-3.12 (NOT 3.13)
+- **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
+- **Alpha Vantage API Key** (Optional): Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+
+### Complete Installation (Copy/Paste)
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/EnragedAntelope/autotrader.git
 cd autotrader
-```
 
-### 2. Install Dependencies
-
-**macOS/Linux:**
-```bash
-npm install
-```
-
-**Windows:**
-```bash
-# Ensure you're using Node.js LTS (18.x, 20.x, or 22.x)
-node --version
-
-# If you have v23.x, downgrade to LTS first:
-# Download from: https://nodejs.org/en/download/
-
-# Then install dependencies
-npm install
-```
-
-### 3. Set Up API Keys
-
-Copy the example environment file:
-
-**Linux/Mac:**
-```bash
+# 2. Copy environment file
 cp .env.example .env
+
+# 3. Edit .env and add your API keys
+# Use your preferred editor (nano, vim, code, etc.)
+nano .env
+
+# 4. Install dependencies
+npm install
+
+# 5. Rebuild better-sqlite3 for Electron (if you get MODULE_VERSION error)
+npm run rebuild
+
+# 6. Start the application
+npm run dev
 ```
 
-**Windows (Command Prompt):**
-```cmd
-copy .env.example .env
-```
-
-**Windows (PowerShell):**
-```powershell
-Copy-Item .env.example .env
-```
+### Setting Up .env File
 
 Edit `.env` and add your API keys:
 
@@ -141,35 +124,246 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
 TRADING_MODE=paper
 ```
 
-### 4. Rebuild better-sqlite3 for Electron (If Needed)
+### Linux/macOS Troubleshooting
 
-**When do you need this?**
-- If you get a MODULE_VERSION error when running `npm run dev`
+#### Python Version Issues
 
-**Important:** Run `npm install` first (step 2) before rebuilding!
+If you have Python 3.13, you need to downgrade:
 
-**Quick fix:**
 ```bash
-# Make sure dependencies are installed first
-npm install
+# Check Python version
+python3 --version
+
+# If you have 3.13, install 3.12
+# macOS (using Homebrew):
+brew install python@3.12
+
+# Linux (Ubuntu/Debian):
+sudo apt-get install python3.12
 
 # Then rebuild
 npm run rebuild
 ```
 
-This script will:
-- Check your Python version (needs 3.8-3.12, NOT 3.13)
-- Rebuild better-sqlite3 for Electron automatically
-- Give you clear error messages if something is wrong
+#### MODULE_VERSION Error
 
-**If you have Python 3.13:**
-- Install Python 3.12 from https://www.python.org/downloads/
-- Windows: Set environment variable `PYTHON` to point to Python 3.12
-- Then run `npm run rebuild` again
+```bash
+# Make sure dependencies are installed first
+npm install
 
-See [INSTALL.md](INSTALL.md) for detailed troubleshooting.
+# Then rebuild better-sqlite3
+npm run rebuild
+```
 
-### 5. Getting Your Alpaca API Keys
+#### Permission Errors
+
+```bash
+# If you get EACCES errors during npm install
+sudo chown -R $(whoami) ~/.npm
+sudo chown -R $(whoami) /usr/local/lib/node_modules
+```
+
+---
+
+## Windows Installation
+
+### Prerequisites
+
+- **Node.js**: Version 18.x, 20.x, or 22.x LTS (**⚠️ NOT v23.x** - see troubleshooting below)
+- **npm**: Version 9.x or higher
+- **Python**: Version 3.8-3.12 (NOT 3.13)
+- **Visual Studio Build Tools**: Required for native module compilation
+- **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
+- **Alpha Vantage API Key** (Optional): Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+
+### Installing Visual Studio Build Tools
+
+**Option 1 - Automated (Recommended):**
+```powershell
+# Run PowerShell as Administrator
+npm install --global windows-build-tools
+```
+
+**Option 2 - Manual:**
+1. Download Visual Studio Build Tools from: https://visualstudio.microsoft.com/downloads/
+2. Install with "Desktop development with C++" workload selected
+
+### Complete Installation (Copy/Paste)
+
+**Command Prompt:**
+```cmd
+REM 1. Verify Node.js version (MUST be 18.x, 20.x, or 22.x)
+node --version
+
+REM 2. Clone the repository
+git clone https://github.com/EnragedAntelope/autotrader.git
+cd autotrader
+
+REM 3. Copy environment file
+copy .env.example .env
+
+REM 4. Edit .env and add your API keys
+REM Use notepad or your preferred editor
+notepad .env
+
+REM 5. Install dependencies
+npm install
+
+REM 6. Rebuild better-sqlite3 for Electron (if you get MODULE_VERSION error)
+npm run rebuild
+
+REM 7. Start the application
+npm run dev
+```
+
+**PowerShell:**
+```powershell
+# 1. Verify Node.js version (MUST be 18.x, 20.x, or 22.x)
+node --version
+
+# 2. Clone the repository
+git clone https://github.com/EnragedAntelope/autotrader.git
+cd autotrader
+
+# 3. Copy environment file
+Copy-Item .env.example .env
+
+# 4. Edit .env and add your API keys
+# Use notepad or your preferred editor
+notepad .env
+
+# 5. Install dependencies
+npm install
+
+# 6. Rebuild better-sqlite3 for Electron (if you get MODULE_VERSION error)
+npm run rebuild
+
+# 7. Start the application
+npm run dev
+```
+
+### Setting Up .env File
+
+Edit `.env` and add your API keys:
+
+```env
+# Paper Trading Keys (from Alpaca Dashboard)
+ALPACA_PAPER_API_KEY=your_paper_api_key_here
+ALPACA_PAPER_SECRET_KEY=your_paper_secret_key_here
+
+# Live Trading Keys (ONLY if you plan to use live trading)
+ALPACA_LIVE_API_KEY=your_live_api_key_here
+ALPACA_LIVE_SECRET_KEY=your_live_secret_key_here
+
+# Alpha Vantage (Optional - for fundamental data)
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
+
+# Default Trading Mode
+TRADING_MODE=paper
+```
+
+### Windows Troubleshooting
+
+#### Error: "C++20 or later required" during npm install
+
+**Problem**: You're using Node.js v23.x which requires C++20, but better-sqlite3 doesn't support it yet.
+
+**Solution - Downgrade to Node.js LTS:**
+
+1. Uninstall Node.js v23.x:
+   - Go to Settings → Apps → Node.js → Uninstall
+2. Download Node.js 20.x LTS from https://nodejs.org/
+3. Install and verify:
+   ```cmd
+   node --version
+   ```
+   Should show v20.x.x
+4. Run installation again:
+   ```cmd
+   npm install
+   ```
+
+**Alternative - Use NVM for Windows:**
+```cmd
+REM Install nvm-windows from: https://github.com/coreybutler/nvm-windows
+nvm install 20
+nvm use 20
+npm install
+```
+
+#### Error: "MSBuild.exe failed with exit code: 1"
+
+**Problem**: Missing Visual Studio Build Tools
+
+**Solution:**
+```powershell
+# Run PowerShell as Administrator
+npm install --global windows-build-tools
+
+# OR download and install Visual Studio Build Tools manually:
+# https://visualstudio.microsoft.com/downloads/
+# Select "Desktop development with C++" workload
+```
+
+#### Error: "EPERM: operation not permitted"
+
+**Problem**: Windows file locking during installation
+
+**Solution:**
+```cmd
+REM 1. Close all applications using the project folder
+
+REM 2. Delete node_modules folder
+rmdir /s /q node_modules
+
+REM 3. Clear npm cache
+npm cache clean --force
+
+REM 4. Try installing again
+npm install
+```
+
+#### Python 3.13 Compatibility Issues
+
+**Problem**: better-sqlite3 doesn't support Python 3.13 yet
+
+**Solution:**
+1. Install Python 3.12 from https://www.python.org/downloads/
+2. Set environment variable to point to Python 3.12:
+   ```powershell
+   # PowerShell (as Administrator)
+   [System.Environment]::SetEnvironmentVariable('PYTHON', 'C:\Python312\python.exe', 'Machine')
+   ```
+3. Restart your terminal
+4. Run `npm run rebuild` again
+
+#### Still Having Issues?
+
+If you continue to have problems:
+
+1. **Verify Node.js version** (MUST be 18.x, 20.x, or 22.x):
+   ```cmd
+   node --version
+   ```
+
+2. **Verify Visual Studio Build Tools**:
+   ```cmd
+   npm config get msvs_version
+   ```
+
+3. **Try installing better-sqlite3 separately**:
+   ```cmd
+   npm install better-sqlite3@9.2.2 --build-from-source
+   ```
+
+4. **Report the issue**:
+   https://github.com/EnragedAntelope/autotrader/issues
+
+---
+
+## Getting Your API Keys
+
+### Alpaca API Keys
 
 1. Sign up for a free account at [Alpaca Markets](https://app.alpaca.markets/signup)
 2. Navigate to your [Paper Trading Dashboard](https://app.alpaca.markets/paper/dashboard/overview)
@@ -183,13 +377,15 @@ See [INSTALL.md](INSTALL.md) for detailed troubleshooting.
 3. Generate live trading API keys
 4. Copy to the ALPACA_LIVE_* variables in `.env`
 
-### 6. Getting Alpha Vantage API Key (Optional)
+### Alpha Vantage API Key (Optional)
 
 1. Visit [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
 2. Enter your email and click "GET FREE API KEY"
 3. Copy the key to your `.env` file
 
-Note: Free tier is limited to 25 requests/day and 5 requests/minute.
+**Note**: Free tier is limited to 25 requests/day and 5 requests/minute.
+
+---
 
 ## Running the Application
 
@@ -214,6 +410,55 @@ npm run build:electron
 
 This creates distributable packages in the `dist-electron` directory.
 
+---
+
+## General Troubleshooting
+
+### Electron Security Warning (CSP) - EXPECTED IN DEV MODE
+
+**Warning**: "Electron Security Warning (Insecure Content-Security-Policy)"
+
+**This is NORMAL and EXPECTED in development mode!**
+
+**Explanation**:
+- Vite's Hot Module Replacement (HMR) requires `'unsafe-eval'` in development
+- This warning will **NOT** appear in production builds
+- The warning message itself states: "This warning will not show up once the app is packaged"
+- Production builds use a strict CSP without `'unsafe-eval'`
+
+**Action**: You can safely ignore this warning during development. No fix is needed.
+
+### API Key Errors
+
+**Error**: "Missing Alpaca API credentials"
+
+**Solution**:
+- Verify `.env` file exists in project root
+- Check that key names match exactly (ALPACA_PAPER_API_KEY, etc.)
+- Ensure no extra spaces or quotes around keys
+- Restart the application after editing `.env`
+
+### Database Errors
+
+**Error**: "Database access error"
+
+**Solution**:
+- Close the application completely
+- Delete the database file (location: user data directory)
+- Restart the application (database will be recreated)
+
+### Market Data Not Loading
+
+**Error**: "Failed to get market data"
+
+**Solutions**:
+- Check internet connection
+- Verify API keys are valid
+- Check if you've exceeded Alpha Vantage rate limits (25/day)
+- Wait a few minutes and try again
+
+---
+
 ## Project Structure
 
 ```
@@ -237,6 +482,8 @@ alpaca-trading-scanner/
 └── .env                  # API keys (DO NOT COMMIT!)
 ```
 
+---
+
 ## Usage Guide
 
 ### First Run
@@ -244,21 +491,23 @@ alpaca-trading-scanner/
 1. Launch the application
 2. Verify you're in **PAPER TRADING** mode (green indicator in top bar)
 3. Check that your account info loads correctly
-4. Explore the Dashboard to see account summary
+4. Explore the Dashboard to see account summary and P/L statistics
 
 ### Creating a Screening Profile
 
 1. Navigate to **Screener Builder**
-2. Enter a name for your profile
-3. Select asset type (Stock, Call Option, or Put Option)
-4. Set your screening parameters
-5. Configure automation settings
-6. Save the profile
+2. Click "Load Template" to start with a pre-built profile (recommended)
+3. Enter a name for your profile
+4. Select asset type (Stock, Call Option, or Put Option)
+5. Set your screening parameters (use help tooltips for guidance)
+6. Click "Test Scan" to preview results
+7. Configure automation settings if desired
+8. Save the profile
 
 ### Risk Management Settings
 
 1. Navigate to **Risk Management**
-2. Configure your limits
+2. Configure your limits (transaction, daily, weekly)
 3. Set default stop-loss and take-profit percentages
 4. Save settings
 
@@ -268,244 +517,30 @@ alpaca-trading-scanner/
 
 **Automated Scanning**: Enable scheduling on a profile and start the global scheduler
 
-## Troubleshooting
+### Backtesting Strategies
 
-### Windows-Specific Installation Issues
+1. Navigate to **Backtesting**
+2. Select a screening profile
+3. Choose date range and capital settings
+4. Click "Run Backtest"
+5. Review performance metrics and trade history
 
-#### Error: "C++20 or later required" during npm install
-
-**Problem**: You're using Node.js v23.x which requires C++20, but better-sqlite3 doesn't fully support it yet.
-
-**Solution**:
-1. **Downgrade to Node.js LTS** (Recommended):
-   - Uninstall Node.js v23.x
-   - Download Node.js 20.x LTS from https://nodejs.org/
-   - Install and verify: `node --version` (should show v20.x.x)
-   - Run `npm install` again
-
-2. **Alternative - Use NVM for Windows**:
-   ```bash
-   # Install nvm-windows from: https://github.com/coreybutler/nvm-windows
-   nvm install 20
-   nvm use 20
-   npm install
-   ```
-
-#### Error: "MSBuild.exe failed with exit code: 1"
-
-**Problem**: Missing Visual Studio Build Tools
-
-**Solution**:
-```bash
-# Option 1: Install build tools globally (run as Administrator)
-npm install --global windows-build-tools
-
-# Option 2: Manual installation
-# Download Visual Studio Build Tools from:
-# https://visualstudio.microsoft.com/downloads/
-# Select "Desktop development with C++" workload
-```
-
-#### Error: "EPERM: operation not permitted, rmdir"
-
-**Problem**: Windows file locking during installation
-
-**Solution**:
-```bash
-# Close all applications that might be using node_modules
-# Delete node_modules folder manually
-rmdir /s /q node_modules
-
-# Clear npm cache
-npm cache clean --force
-
-# Try installing again
-npm install
-```
-
-#### Still Having Issues?
-
-If you continue to have problems with better-sqlite3 on Windows:
-
-1. **Check Node.js version**: Must be 18.x, 20.x, or 22.x (NOT 23.x)
-   ```bash
-   node --version
-   ```
-
-2. **Verify Visual Studio Build Tools**:
-   ```bash
-   npm config get msvs_version
-   ```
-
-3. **Try installing better-sqlite3 separately**:
-   ```bash
-   npm install better-sqlite3@9.2.2 --build-from-source
-   ```
-
-4. **Report the issue**: If none of these work, please open an issue at:
-   https://github.com/EnragedAntelope/autotrader/issues
-
-### General Troubleshooting
-
-#### Electron Security Warning (Content-Security-Policy) - EXPECTED IN DEV MODE
-
-**Warning**: "Electron Security Warning (Insecure Content-Security-Policy)"
-
-**This is NORMAL and EXPECTED in development mode!**
-
-**Explanation**:
-- Vite's Hot Module Replacement (HMR) requires `'unsafe-eval'` in development
-- This warning will **NOT** appear in production builds
-- The warning message itself states: "This warning will not show up once the app is packaged"
-- Production builds use a strict CSP without `'unsafe-eval'`
-
-**Action**: You can safely ignore this warning during development. No fix is needed.
-
-#### API Key Errors
-
-**Error**: "Missing Alpaca API credentials"
-
-**Solution**:
-- Verify `.env` file exists in project root
-- Check that key names match exactly (ALPACA_PAPER_API_KEY, etc.)
-- Ensure no extra spaces or quotes around keys
-- Restart the application after editing `.env`
-
-#### Database Errors
-
-**Error**: "Database access error"
-
-**Solution**:
-- Close the application completely
-- Delete the database file (location: user data directory)
-- Restart the application (database will be recreated)
-
-#### Market Data Not Loading
-
-**Error**: "Failed to get market data"
-
-**Solutions**:
-- Check internet connection
-- Verify API keys are valid
-- Check if you've exceeded Alpha Vantage rate limits (25/day)
-- Wait a few minutes and try again
+---
 
 ## Implementation Status
 
-### ✅ Phase 1: Foundation (Complete)
-- Project structure and build setup
-- Electron + React integration with TypeScript
-- SQLite database with full schema
-- Alpaca API service integration
-- Material-UI component library
-- Redux Toolkit state management
-- Account info display
-- Trading mode switching (Paper/Live)
-- Dashboard with account summary
+### ✅ All Phases Complete!
 
-### ✅ Phase 2: Rate Limiting & Core Services (Complete)
-- API rate limiting service (Alpaca & Alpha Vantage)
-- Rate limit tracking and enforcement
-- Stock screening engine
-- Trade execution service with risk checks
-- Position tracking system
-- Market data aggregation service
-- Scheduler service (cron-based automation)
+- **Phase 1**: Foundation (Electron, React, Database, API integration)
+- **Phase 2**: Rate Limiting & Core Services (Screening, Trading, Scheduling)
+- **Phase 3**: UI Components & Options Support (All screens + options trading)
+- **Phase 4**: Position Monitoring & Automation (Stop-loss, Take-profit, Auto-execution)
+- **Phase 5**: Enhanced Screening & Backtesting (45+ parameters, Templates, Strategy validation)
+- **Phase 6**: Polish & User Experience (Dark theme, Enhanced UI)
 
-### ✅ Phase 3: UI Components & Options Support (COMPLETE!)
-**All components implemented, tested, and production-ready:**
-- ✅ Options API integration (getOptionContracts, getOptionChain, getOptionQuote)
-- ✅ ScreenerBuilder UI - Complete screening profile management (902 lines)
-- ✅ Scheduler UI - Automated scan scheduling and monitoring (420 lines)
-- ✅ Enhanced Settings UI - Rate limit configuration, preferences (412 lines)
-- ✅ Scan Results Viewer - Results table with filtering and trade execution (654 lines)
-- ✅ Options Screening Logic - Full option filtering with Greeks, strike, expiration (230 lines)
-- ✅ Content Security Policy - Security hardening for Electron
-- ✅ Comprehensive error handling (400/404/429 status codes)
-- ✅ Rate limit protection and graceful degradation
-- ✅ Comprehensive documentation - PHASE3_PROGRESS.md
+**Total**: ~15,000 lines of production-ready code
 
-**Total Phase 3 additions:** ~2,900 lines of production-ready code
-
-**Critical bug fixes applied:**
-- Fixed NaN parameter validation in form inputs
-- Fixed expiration date filters for Alpaca API
-- Fixed Switch component boolean type errors
-- Graceful handling of missing option quote data
-- Rate limit protection with automatic retry/skip logic
-
-### ✅ Phase 4: Position Monitoring & Automation (COMPLETE!)
-**All features implemented and production-ready:**
-- ✅ Trade History UI - Complete trade log with filtering, statistics (457 lines)
-- ✅ Risk Management UI - Full risk controls configuration (423 lines)
-- ✅ Active Positions UI - Real-time position monitoring with P/L tracking (425 lines)
-- ✅ Automated Position Monitoring Service - Background service for stop-loss/take-profit (305 lines)
-- ✅ Automatic order execution when thresholds are hit
-- ✅ Position tracking with unrealized P/L calculations
-- ✅ Closed positions history with realized P/L
-- ✅ Daily statistics tracking
-- ✅ Auto-refresh position data every 30 seconds
-- ✅ Edit stop-loss/take-profit per position
-- ✅ Comprehensive notifications for auto-executions
-
-**Total Phase 4 additions:** ~1,610 lines of production-ready code
-
-**Key Features:**
-- Real-time position monitoring every 60 seconds
-- Automatic stop-loss execution to protect against losses
-- Automatic take-profit execution to lock in gains
-- Detailed trade history with filters (symbol, status, date)
-- Risk settings with validation and warnings
-- Position statistics and P/L tracking
-- Seamless integration with existing trading system
-
-### ✅ Phase 5: Enhanced Screening & Backtesting (COMPLETE!)
-**Comprehensive parameter library and strategy validation:**
-- ✅ Help tooltips on ALL parameters with educational content
-- ✅ Suggested "good" values for every parameter
-- ✅ Comprehensive input validation (min/max, type checking)
-- ✅ 30+ fundamental analysis parameters:
-  - Current Ratio, Quick Ratio (liquidity)
-  - D/E Ratio, P/E Ratio, P/B Ratio (valuation)
-  - ROE, ROA (profitability)
-  - Dividend Yield, Beta, RSI (technical + yield)
-  - Market Cap ranges, Sector/Country filters
-- ✅ 15+ additional option parameters
-- ✅ 7 default screening templates:
-  - Value Stocks (Conservative)
-  - Growth Stocks
-  - Dividend Income Stocks
-  - Momentum Stocks
-  - High Delta Calls
-  - At-The-Money Calls
-  - Protective Puts
-- ✅ Backtesting engine with historical simulation (305 lines)
-- ✅ Performance metrics (Win Rate, Sharpe Ratio, Max Drawdown)
-- ✅ Trade-by-trade analysis
-- ✅ Profit Factor, Average Win/Loss calculations
-- ✅ Configurable backtest period and capital
-
-**Total Phase 5 additions:** ~1,200 lines of educational and analytical code
-
-**Key Improvements:**
-- User-friendly educational help system
-- Prevents invalid inputs before submission
-- Professional templates for quick start
-- Evidence-based strategy validation
-- Historical performance metrics
-
-### ✅ Phase 6: Polish & User Experience (COMPLETE!)
-**Professional UI polish and theming:**
-- ✅ Dark theme toggle with localStorage persistence
-- ✅ Beautiful light/dark color schemes
-- ✅ Smooth theme transitions
-- ✅ Theme-aware component styling
-- ✅ Professional color palette
-- ✅ Enhanced visual hierarchy
-
-**Total Phase 6 additions:** ~150 lines
-
-## 🎉 Application Complete!
+---
 
 ## Security Notes
 
@@ -513,16 +548,21 @@ If you continue to have problems with better-sqlite3 on Windows:
 - All API calls made from Electron main process
 - IPC bridge only exposes necessary functions
 - Context isolation enabled for security
+- Content Security Policy enforced in production
+
+---
 
 ## License
 
 MIT License - See LICENSE file for details
 
+---
+
 ## Support
 
 For issues or questions:
-- Open an issue on GitHub
-- Review documentation and troubleshooting section
+- Open an issue on GitHub: https://github.com/EnragedAntelope/autotrader/issues
+- Review documentation and troubleshooting sections above
 
 ---
 
