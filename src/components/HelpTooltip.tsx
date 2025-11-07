@@ -1,4 +1,4 @@
-import { IconButton, Tooltip, TooltipProps } from '@mui/material';
+import { IconButton, Tooltip, TooltipProps, Box } from '@mui/material';
 import { HelpOutline as HelpIcon } from '@mui/icons-material';
 
 interface HelpTooltipProps {
@@ -22,9 +22,11 @@ function HelpTooltip({ title, placement = 'right' }: HelpTooltipProps) {
         maxWidth: 400,
       }}
     >
-      <IconButton size="small" sx={{ ml: 0.5, p: 0.5 }}>
-        <HelpIcon fontSize="small" color="action" />
-      </IconButton>
+      <Box component="span" sx={{ display: 'inline-flex' }}>
+        <IconButton size="small" sx={{ ml: 0.5, p: 0.5 }}>
+          <HelpIcon fontSize="small" color="action" />
+        </IconButton>
+      </Box>
     </Tooltip>
   );
 }
