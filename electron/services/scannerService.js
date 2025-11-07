@@ -154,12 +154,236 @@ class ScannerService {
 
   /**
    * Scan for options matching criteria
-   * Phase 1: Stub - will be implemented in Phase 3
+   * Implemented in Phase 3
    */
   async scanOptions(assetType, parameters, db) {
-    // TODO: Implement options screening logic in Phase 3
-    console.log(`${assetType} scanning logic - to be implemented in Phase 3`);
-    return [];
+    const underlyingSymbols = await this.getWatchlist(db);
+    const matches = [];
+    const optionType = assetType === 'call_option' ? 'call' : 'put';
+
+    console.log(`Scanning ${underlyingSymbols.length} underlyings for ${optionType}s with criteria:`, Object.keys(parameters));
+
+    for (const underlying of underlyingSymbols) {
+      try {
+        // Get option contracts for this underlying with rate limiting
+        const optionContracts = await this.rateLimiter.executeRequest('alpaca', () =>
+          alpacaService.getOptionContracts(underlying, {
+            type: optionType,
+            status: 'active',
+          })
+        );
+
+        if (!optionContracts || optionContracts.length === 0) {
+          continue;
+        }
+
+        console.log(`Found ${optionContracts.length} ${optionType} contracts for ${underlying}`);
+
+        // Filter contracts by expiration if specified
+        const filteredByExpiration = this.filterByExpiration(optionContracts, parameters);
+
+        // Get detailed data for each filtered contract
+        for (const contract of filteredByExpiration.slice(0, 20)) {
+          // Limit to 20 per underlying to avoid too many API calls
+          try {
+            const optionData = await this.getOptionData(contract.symbol, contract, parameters, db);
+
+            if (!optionData) {
+              continue;
+            }
+
+            // Check if option matches all criteria
+            if (this.matchesOptionCriteria(optionData, parameters)) {
+              matches.push({
+                symbol: contract.symbol,
+                data: optionData,
+              });
+              console.log(`✓ Match found: ${contract.symbol} (${underlying} ${contract.strike_price} ${contract.expiration_date})`);
+
+              // Limit total matches to avoid overwhelming results
+              if (matches.length >= 100) {
+                console.log('Reached maximum matches (100), stopping scan');
+                return matches;
+              }
+            }
+          } catch (error) {
+            console.error(`Error scanning option ${contract.symbol}:`, error.message);
+            // Continue with next contract
+          }
+        }
+      } catch (error) {
+        console.error(`Error scanning options for ${underlying}:`, error.message);
+        // Continue with next underlying
+      }
+    }
+
+    return matches;
+  }
+
+  /**
+   * Filter option contracts by expiration date range
+   */
+  filterByExpiration(contracts, parameters) {
+    if (!parameters.expirationMinDays && !parameters.expirationMaxDays) {
+      return contracts;
+    }
+
+    const now = new Date();
+    const minDate = parameters.expirationMinDays
+      ? new Date(now.getTime() + parameters.expirationMinDays * 24 * 60 * 60 * 1000)
+      : null;
+    const maxDate = parameters.expirationMaxDays
+      ? new Date(now.getTime() + parameters.expirationMaxDays * 24 * 60 * 60 * 1000)
+      : null;
+
+    return contracts.filter((contract) => {
+      const expDate = new Date(contract.expiration_date);
+
+      if (minDate && expDate < minDate) return false;
+      if (maxDate && expDate > maxDate) return false;
+
+      return true;
+    });
+  }
+
+  /**
+   * Get comprehensive option data for screening
+   */
+  async getOptionData(optionSymbol, contract, parameters, db) {
+    try {
+      // Get option quote/snapshot with rate limiting
+      const quote = await this.rateLimiter.executeRequest('alpaca', () =>
+        alpacaService.getOptionQuote(optionSymbol)
+      );
+
+      if (!quote) {
+        return null;
+      }
+
+      // Calculate days to expiration
+      const now = new Date();
+      const expDate = new Date(contract.expiration_date);
+      const daysToExpiration = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+
+      // Get underlying price to calculate moneyness
+      const underlyingQuote = await this.rateLimiter.executeRequest('alpaca', () =>
+        alpacaService.getQuote(contract.underlying_symbol)
+      );
+
+      const underlyingPrice = underlyingQuote ? underlyingQuote.price : null;
+
+      // Calculate moneyness
+      let moneyness = 'ATM';
+      if (underlyingPrice && contract.strike_price) {
+        if (contract.type === 'call') {
+          if (underlyingPrice > contract.strike_price * 1.01) moneyness = 'ITM';
+          else if (underlyingPrice < contract.strike_price * 0.99) moneyness = 'OTM';
+        } else {
+          // put
+          if (underlyingPrice < contract.strike_price * 0.99) moneyness = 'ITM';
+          else if (underlyingPrice > contract.strike_price * 1.01) moneyness = 'OTM';
+        }
+      }
+
+      const optionData = {
+        symbol: optionSymbol,
+        underlying_symbol: contract.underlying_symbol,
+        strike_price: contract.strike_price,
+        expiration_date: contract.expiration_date,
+        days_to_expiration: daysToExpiration,
+        type: contract.type,
+        moneyness,
+        // Price data
+        bid: quote.bid || 0,
+        ask: quote.ask || 0,
+        midpoint: quote.bid && quote.ask ? (quote.bid + quote.ask) / 2 : 0,
+        bid_ask_spread: quote.bid && quote.ask ? quote.ask - quote.bid : 0,
+        last_price: quote.last_price || 0,
+        // Volume and interest
+        volume: quote.volume || 0,
+        open_interest: quote.open_interest || 0,
+        volume_oi_ratio: quote.volume && quote.open_interest ? quote.volume / quote.open_interest : 0,
+        // Greeks (if available)
+        delta: quote.greeks?.delta || null,
+        gamma: quote.greeks?.gamma || null,
+        theta: quote.greeks?.theta || null,
+        vega: quote.greeks?.vega || null,
+        implied_volatility: quote.implied_volatility || null,
+        // Market data snapshot for results display
+        price: quote.last_price || (quote.bid && quote.ask ? (quote.bid + quote.ask) / 2 : 0),
+        change: quote.change || 0,
+        changePercent: quote.change_percent || 0,
+      };
+
+      return optionData;
+    } catch (error) {
+      console.error(`Error getting option data for ${optionSymbol}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Check if an option matches the given parameters
+   */
+  matchesOptionCriteria(optionData, parameters) {
+    // Strike price checks
+    if (parameters.strikeMin && optionData.strike_price < parameters.strikeMin) return false;
+    if (parameters.strikeMax && optionData.strike_price > parameters.strikeMax) return false;
+
+    // Expiration already filtered in filterByExpiration
+
+    // Greeks checks
+    if (parameters.deltaMin !== undefined && optionData.delta !== null) {
+      if (optionData.delta < parameters.deltaMin) return false;
+    }
+    if (parameters.deltaMax !== undefined && optionData.delta !== null) {
+      if (optionData.delta > parameters.deltaMax) return false;
+    }
+
+    if (parameters.gammaMin !== undefined && optionData.gamma !== null) {
+      if (optionData.gamma < parameters.gammaMin) return false;
+    }
+    if (parameters.gammaMax !== undefined && optionData.gamma !== null) {
+      if (optionData.gamma > parameters.gammaMax) return false;
+    }
+
+    if (parameters.thetaMin !== undefined && optionData.theta !== null) {
+      if (optionData.theta < parameters.thetaMin) return false;
+    }
+    if (parameters.thetaMax !== undefined && optionData.theta !== null) {
+      if (optionData.theta > parameters.thetaMax) return false;
+    }
+
+    if (parameters.vegaMin !== undefined && optionData.vega !== null) {
+      if (optionData.vega < parameters.vegaMin) return false;
+    }
+    if (parameters.vegaMax !== undefined && optionData.vega !== null) {
+      if (optionData.vega > parameters.vegaMax) return false;
+    }
+
+    // Pricing checks
+    if (parameters.bidMin && optionData.bid < parameters.bidMin) return false;
+    if (parameters.bidMax && optionData.bid > parameters.bidMax) return false;
+
+    if (parameters.askMin && optionData.ask < parameters.askMin) return false;
+    if (parameters.askMax && optionData.ask > parameters.askMax) return false;
+
+    if (parameters.bidAskSpreadMax && optionData.bid_ask_spread > parameters.bidAskSpreadMax) return false;
+
+    if (parameters.premiumMin && optionData.midpoint < parameters.premiumMin) return false;
+    if (parameters.premiumMax && optionData.midpoint > parameters.premiumMax) return false;
+
+    // Volume and OI checks
+    if (parameters.openInterestMin && optionData.open_interest < parameters.openInterestMin) return false;
+    if (parameters.volumeMin && optionData.volume < parameters.volumeMin) return false;
+    if (parameters.volumeOIRatioMin && optionData.volume_oi_ratio < parameters.volumeOIRatioMin) return false;
+
+    // Moneyness filter
+    if (parameters.moneyness && parameters.moneyness !== 'any') {
+      if (optionData.moneyness !== parameters.moneyness) return false;
+    }
+
+    return true;
   }
 
   /**
