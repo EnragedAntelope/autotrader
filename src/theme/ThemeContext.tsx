@@ -36,7 +36,11 @@ export function CustomThemeProvider({ children }: { children: ReactNode }) {
   }, [mode]);
 
   const toggleTheme = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+    setMode((prevMode) => {
+      const newMode = prevMode === 'light' ? 'dark' : 'light';
+      console.log(`[ThemeContext] Toggling theme from ${prevMode} to ${newMode}`);
+      return newMode;
+    });
   };
 
   const theme = useMemo(
