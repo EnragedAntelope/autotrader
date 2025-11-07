@@ -25,6 +25,7 @@ import {
   Settings as SettingsIcon,
   Notifications as NotificationsIcon,
   Search as SearchIcon,
+  ShowChart as PositionsIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from './store';
@@ -34,13 +35,14 @@ import ScreenerBuilder from './components/ScreenerBuilder';
 import Scheduler from './components/Scheduler';
 import ScanResults from './components/ScanResults';
 import TradeHistory from './components/TradeHistory';
+import ActivePositions from './components/ActivePositions';
 import RiskManagement from './components/RiskManagement';
 import Settings from './components/Settings';
 import NotificationCenter from './components/NotificationCenter';
 
 const drawerWidth = 240;
 
-type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'risk' | 'settings';
+type View = 'dashboard' | 'screener' | 'scheduler' | 'results' | 'trades' | 'positions' | 'risk' | 'settings';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -69,6 +71,7 @@ function App() {
     { id: 'scheduler' as View, label: 'Scheduler', icon: <ScheduleIcon /> },
     { id: 'results' as View, label: 'Scan Results', icon: <SearchIcon /> },
     { id: 'trades' as View, label: 'Trade History', icon: <TradingIcon /> },
+    { id: 'positions' as View, label: 'Active Positions', icon: <PositionsIcon /> },
     { id: 'risk' as View, label: 'Risk Management', icon: <AccountIcon /> },
     { id: 'settings' as View, label: 'Settings', icon: <SettingsIcon /> },
   ];
@@ -90,6 +93,8 @@ function App() {
         return <ScanResults />;
       case 'trades':
         return <TradeHistory />;
+      case 'positions':
+        return <ActivePositions />;
       case 'risk':
         return <RiskManagement />;
       case 'settings':
