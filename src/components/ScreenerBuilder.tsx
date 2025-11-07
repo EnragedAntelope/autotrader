@@ -141,10 +141,11 @@ function ScreenerBuilder() {
       name: profile.name,
       asset_type: profile.asset_type,
       parameters: profile.parameters,
-      schedule_enabled: profile.schedule_enabled,
+      // Explicitly convert to boolean to prevent type errors
+      schedule_enabled: Boolean(profile.schedule_enabled),
       schedule_interval: profile.schedule_interval,
-      schedule_market_hours_only: profile.schedule_market_hours_only,
-      auto_execute: profile.auto_execute,
+      schedule_market_hours_only: Boolean(profile.schedule_market_hours_only),
+      auto_execute: Boolean(profile.auto_execute),
       max_transaction_amount: profile.max_transaction_amount || 1000,
     });
     setDialogOpen(true);
