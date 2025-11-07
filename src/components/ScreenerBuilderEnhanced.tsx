@@ -43,6 +43,7 @@ import {
   GetApp as ImportIcon,
   LibraryAdd as TemplateIcon,
   Info as InfoIcon,
+  HelpOutline as HelpIcon,
 } from '@mui/icons-material';
 import HelpTooltip from './HelpTooltip';
 import {
