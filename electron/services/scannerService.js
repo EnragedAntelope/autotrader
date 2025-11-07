@@ -271,7 +271,15 @@ class ScannerService {
       ? new Date(now.getTime() + parameters.expirationMaxDays * 24 * 60 * 60 * 1000)
       : null;
 
-    return contracts.filter((contract) => {
+    console.log('Expiration filter:', {
+      now: now.toISOString().split('T')[0],
+      minDate: minDate ? minDate.toISOString().split('T')[0] : null,
+      maxDate: maxDate ? maxDate.toISOString().split('T')[0] : null,
+      totalContracts: contracts.length,
+      sampleExpiration: contracts[0]?.expiration_date
+    });
+
+    const filtered = contracts.filter((contract) => {
       const expDate = new Date(contract.expiration_date);
 
       if (minDate && expDate < minDate) return false;
@@ -279,6 +287,10 @@ class ScannerService {
 
       return true;
     });
+
+    console.log(`Filtered ${contracts.length} contracts to ${filtered.length} by expiration`);
+
+    return filtered;
   }
 
   /**
