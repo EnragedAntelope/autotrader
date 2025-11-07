@@ -550,6 +550,11 @@ class AlpacaService {
         // Silently return null - not all option contracts have snapshot data
         return null;
       }
+      // Handle 429 (rate limit) gracefully
+      if (error.response && error.response.status === 429) {
+        console.warn(`Rate limit hit for ${optionSymbol}, skipping...`);
+        return null;
+      }
       // Only log unexpected errors
       console.error(`Error getting option quote for ${optionSymbol}:`, error.message);
       throw error;
