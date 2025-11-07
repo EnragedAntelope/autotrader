@@ -659,7 +659,7 @@ class ScannerService {
 
       const stockData = {
         symbol,
-        price: quote.price,
+        price: quote.price || bar.close, // Fallback to bar close if quote price unavailable
         volume: bar.volume,
         open: bar.open,
         high: bar.high,
