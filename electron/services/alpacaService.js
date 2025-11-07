@@ -544,10 +544,14 @@ class AlpacaService {
         implied_volatility: snapshot.impliedVolatility,
       };
     } catch (error) {
-      console.error(`Error getting option quote for ${optionSymbol}:`, error);
-      if (error.response && error.response.status === 404) {
+      // Handle 400 (invalid symbol) and 404 (not found) gracefully - these are expected
+      // when option contracts don't have snapshot data available
+      if (error.response && (error.response.status === 400 || error.response.status === 404)) {
+        // Silently return null - not all option contracts have snapshot data
         return null;
       }
+      // Only log unexpected errors
+      console.error(`Error getting option quote for ${optionSymbol}:`, error.message);
       throw error;
     }
   }
