@@ -834,23 +834,29 @@ function ScreenerBuilder() {
                 />
                 <ListItemSecondaryAction>
                   <Tooltip title="Test Scan">
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleTestScan(profile.id!)}
-                      disabled={loading}
-                    >
-                      <PlayIcon />
-                    </IconButton>
+                    <Box component="span" sx={{ display: 'inline-flex' }}>
+                      <IconButton
+                        edge="end"
+                        onClick={() => handleTestScan(profile.id!)}
+                        disabled={loading}
+                      >
+                        <PlayIcon />
+                      </IconButton>
+                    </Box>
                   </Tooltip>
                   <Tooltip title="Edit">
-                    <IconButton edge="end" onClick={() => handleEdit(profile)}>
-                      <EditIcon />
-                    </IconButton>
+                    <Box component="span" sx={{ display: 'inline-flex' }}>
+                      <IconButton edge="end" onClick={() => handleEdit(profile)}>
+                        <EditIcon />
+                      </IconButton>
+                    </Box>
                   </Tooltip>
                   <Tooltip title="Delete">
-                    <IconButton edge="end" onClick={() => handleDelete(profile.id!)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <Box component="span" sx={{ display: 'inline-flex' }}>
+                      <IconButton edge="end" onClick={() => handleDelete(profile.id!)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   </Tooltip>
                 </ListItemSecondaryAction>
               </ListItem>
