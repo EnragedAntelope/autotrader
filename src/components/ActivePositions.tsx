@@ -178,9 +178,11 @@ function ActivePositions() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Active Positions</Typography>
         <Tooltip title="Refresh">
-          <IconButton onClick={loadPositions} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
+          <Box component="span" sx={{ display: 'inline-flex' }}>
+            <IconButton onClick={loadPositions} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Box>
         </Tooltip>
       </Box>
 
