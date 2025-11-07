@@ -48,10 +48,11 @@ class TradeService {
 
       if (!riskCheck.passed) {
         // Log rejected trade
+        const tradingMode = process.env.TRADING_MODE || 'paper';
         db.prepare(`
-          INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, status, rejection_reason)
-          VALUES (?, ?, ?, ?, ?, 'rejected', ?)
-        `).run(profile_id, symbol, side, quantity, order_type, riskCheck.reason);
+          INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, status, rejection_reason, trading_mode)
+          VALUES (?, ?, ?, ?, ?, 'rejected', ?, ?)
+        `).run(profile_id, symbol, side, quantity, order_type, riskCheck.reason, tradingMode);
 
         return {
           success: false,
@@ -72,18 +73,19 @@ class TradeService {
       });
 
       // Step 6: Log trade in database
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       db.prepare(`
-        INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, limit_price, status, order_id)
-        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
-      `).run(profile_id, symbol, side, quantity, order_type, limit_price, orderResult.id);
+        INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, limit_price, status, order_id, trading_mode)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+      `).run(profile_id, symbol, side, quantity, order_type, limit_price, orderResult.id, tradingMode);
 
       // Step 7: Update daily stats
       const today = new Date().toISOString().split('T')[0];
       db.prepare(`
-        INSERT INTO daily_stats (date, orders_placed)
-        VALUES (?, 1)
-        ON CONFLICT(date) DO UPDATE SET orders_placed = orders_placed + 1
-      `).run(today);
+        INSERT INTO daily_stats (date, trading_mode, orders_placed)
+        VALUES (?, ?, 1)
+        ON CONFLICT(date, trading_mode) DO UPDATE SET orders_placed = orders_placed + 1
+      `).run(today, tradingMode);
 
       // Step 8: Create notification
       db.prepare(`
@@ -106,10 +108,11 @@ class TradeService {
       console.error('Error executing trade:', error);
 
       // Log failed trade
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       db.prepare(`
-        INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, status, rejection_reason)
-        VALUES (?, ?, ?, ?, ?, 'rejected', ?)
-      `).run(profile_id, symbol, side, quantity, order_type, error.message);
+        INSERT INTO trade_history (profile_id, symbol, side, quantity, order_type, status, rejection_reason, trading_mode)
+        VALUES (?, ?, ?, ?, ?, 'rejected', ?, ?)
+      `).run(profile_id, symbol, side, quantity, order_type, error.message, tradingMode);
 
       // Create error notification
       db.prepare(`
@@ -175,7 +178,8 @@ class TradeService {
 
     // Check 2: Daily spend limit
     const today = new Date().toISOString().split('T')[0];
-    const dailyStats = db.prepare('SELECT total_spent FROM daily_stats WHERE date = ?').get(today);
+    const tradingMode = process.env.TRADING_MODE || 'paper';
+    const dailyStats = db.prepare('SELECT total_spent FROM daily_stats WHERE date = ? AND trading_mode = ?').get(today, tradingMode);
     const todaySpent = dailyStats ? dailyStats.total_spent : 0;
 
     if (todaySpent + estimatedCost > riskSettings.daily_spend_limit) {
@@ -188,8 +192,8 @@ class TradeService {
     // Check 3: Weekly spend limit
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const weeklySpentResult = db
-      .prepare('SELECT SUM(total_spent) as total FROM daily_stats WHERE date >= ?')
-      .get(weekAgo);
+      .prepare('SELECT SUM(total_spent) as total FROM daily_stats WHERE date >= ? AND trading_mode = ?')
+      .get(weekAgo, tradingMode);
     const weeklySpent = weeklySpentResult ? weeklySpentResult.total || 0 : 0;
 
     if (weeklySpent + estimatedCost > riskSettings.weekly_spend_limit) {
@@ -201,14 +205,14 @@ class TradeService {
 
     // Check 4: Maximum positions
     const positionsCount = db
-      .prepare('SELECT COUNT(*) as count FROM positions_tracker')
-      .get().count;
+      .prepare('SELECT COUNT(*) as count FROM positions_tracker WHERE trading_mode = ?')
+      .get(tradingMode).count;
 
     if (positionsCount >= riskSettings.max_positions) {
       // Check if we already have this position (adding to existing)
       const existingPosition = db
-        .prepare('SELECT * FROM positions_tracker WHERE symbol = ?')
-        .get(symbol);
+        .prepare('SELECT * FROM positions_tracker WHERE symbol = ? AND trading_mode = ?')
+        .get(symbol, tradingMode);
 
       if (!existingPosition) {
         return {
@@ -220,9 +224,10 @@ class TradeService {
 
     // Check 5: Duplicate position check (if not allowed)
     if (!riskSettings.allow_duplicate_positions) {
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       const existingPosition = db
-        .prepare('SELECT * FROM positions_tracker WHERE symbol = ?')
-        .get(symbol);
+        .prepare('SELECT * FROM positions_tracker WHERE symbol = ? AND trading_mode = ?')
+        .get(symbol, tradingMode);
 
       if (existingPosition) {
         return {
@@ -255,10 +260,11 @@ class TradeService {
    */
   async syncPositions(db) {
     try {
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       const alpacaPositions = await alpacaService.getPositions();
 
-      // Clear existing positions and rebuild from Alpaca
-      db.prepare('DELETE FROM positions_tracker').run();
+      // Clear existing positions for this trading mode and rebuild from Alpaca
+      db.prepare('DELETE FROM positions_tracker WHERE trading_mode = ?').run(tradingMode);
 
       const riskSettings = db.prepare('SELECT * FROM risk_settings WHERE id = 1').get();
 
@@ -269,8 +275,8 @@ class TradeService {
         db.prepare(`
           INSERT INTO positions_tracker (symbol, quantity, avg_cost, current_value, current_price,
                                           unrealized_pl, unrealized_pl_percent,
-                                          stop_loss_percent, take_profit_percent, last_updated)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                                          stop_loss_percent, take_profit_percent, trading_mode, last_updated)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         `).run(
           pos.symbol,
           pos.qty,
@@ -280,7 +286,8 @@ class TradeService {
           unrealizedPl,
           unrealizedPlPercent,
           riskSettings.stop_loss_default,
-          riskSettings.take_profit_default
+          riskSettings.take_profit_default,
+          tradingMode
         );
       }
 
@@ -296,7 +303,8 @@ class TradeService {
    */
   async monitorPositions(db) {
     try {
-      const positions = db.prepare('SELECT * FROM positions_tracker').all();
+      const tradingMode = process.env.TRADING_MODE || 'paper';
+      const positions = db.prepare('SELECT * FROM positions_tracker WHERE trading_mode = ?').all(tradingMode);
 
       for (const position of positions) {
         // Get current price
@@ -325,13 +333,14 @@ class TradeService {
         db.prepare(`
           UPDATE positions_tracker
           SET current_price = ?, current_value = ?, unrealized_pl = ?, unrealized_pl_percent = ?, last_updated = datetime('now')
-          WHERE symbol = ?
+          WHERE symbol = ? AND trading_mode = ?
         `).run(
           currentPrice,
           currentPrice * position.quantity,
           (currentPrice - avgCost) * position.quantity,
           plPercent,
-          position.symbol
+          position.symbol,
+          tradingMode
         );
       }
     } catch (error) {

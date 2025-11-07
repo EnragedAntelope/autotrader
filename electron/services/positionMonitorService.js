@@ -69,8 +69,9 @@ class PositionMonitorService {
     }
 
     try {
-      // Get all active positions
-      const positions = this.db.prepare('SELECT * FROM positions_tracker').all();
+      // Get all active positions for current trading mode
+      const tradingMode = process.env.TRADING_MODE || 'paper';
+      const positions = this.db.prepare('SELECT * FROM positions_tracker WHERE trading_mode = ?').all(tradingMode);
 
       if (positions.length === 0) {
         return; // No positions to monitor
@@ -111,6 +112,7 @@ class PositionMonitorService {
       const unrealizedPLPercent = ((currentPrice - avgCost) / avgCost) * 100;
 
       // Update position data in database
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       this.db.prepare(`
         UPDATE positions_tracker
         SET current_price = ?,
@@ -118,13 +120,14 @@ class PositionMonitorService {
             unrealized_pl = ?,
             unrealized_pl_percent = ?,
             last_updated = datetime('now')
-        WHERE id = ?
+        WHERE id = ? AND trading_mode = ?
       `).run(
         currentPrice,
         currentValue,
         unrealizedPL,
         unrealizedPLPercent,
-        position.id
+        position.id,
+        tradingMode
       );
 
       // Check stop-loss trigger
@@ -179,13 +182,14 @@ class PositionMonitorService {
       const realizedPLPercent = ((avgClosePrice - avgOpenPrice) / avgOpenPrice) * 100;
 
       // Move position to closed_positions table
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       this.db.prepare(`
         INSERT INTO closed_positions (
           symbol, quantity, avg_open_price, avg_close_price,
           realized_pl, realized_pl_percent, holding_period_days,
-          opened_at, closed_at, close_reason
+          opened_at, closed_at, close_reason, trading_mode
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
       `).run(
         position.symbol,
         position.quantity,
@@ -195,35 +199,37 @@ class PositionMonitorService {
         realizedPLPercent,
         this.calculateHoldingDays(position.opened_at),
         position.opened_at,
-        reason
+        reason,
+        tradingMode
       );
 
       // Remove from active positions
-      this.db.prepare('DELETE FROM positions_tracker WHERE id = ?').run(position.id);
+      this.db.prepare('DELETE FROM positions_tracker WHERE id = ? AND trading_mode = ?').run(position.id, tradingMode);
 
       // Record trade in trade_history
       this.db.prepare(`
         INSERT INTO trade_history (
           symbol, side, quantity, order_type, filled_price,
-          status, order_id, executed_at, filled_at
+          status, order_id, trading_mode, executed_at, filled_at
         )
-        VALUES (?, 'sell', ?, 'market', ?, 'filled', ?, datetime('now'), datetime('now'))
+        VALUES (?, 'sell', ?, 'market', ?, 'filled', ?, ?, datetime('now'), datetime('now'))
       `).run(
         position.symbol,
         position.quantity,
         currentPrice,
-        order.id
+        order.id,
+        tradingMode
       );
 
       // Update daily stats
       const today = new Date().toISOString().split('T')[0];
       this.db.prepare(`
-        INSERT INTO daily_stats (date, positions_closed, realized_pl)
-        VALUES (?, 1, ?)
-        ON CONFLICT(date) DO UPDATE SET
+        INSERT INTO daily_stats (date, trading_mode, positions_closed, realized_pl)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(date, trading_mode) DO UPDATE SET
           positions_closed = positions_closed + 1,
           realized_pl = realized_pl + excluded.realized_pl
-      `).run(today, realizedPL);
+      `).run(today, tradingMode, realizedPL);
 
       console.log(`✓ Position closed: ${position.symbol} - P/L: $${realizedPL.toFixed(2)} (${realizedPLPercent.toFixed(2)}%)`);
 

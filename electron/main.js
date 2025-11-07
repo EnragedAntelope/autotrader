@@ -95,11 +95,114 @@ function initializeDatabase() {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.exec(schema);
     console.log('Database initialized successfully');
+
+    // Run migrations for existing databases
+    runMigrations();
   } catch (error) {
     console.error('Error initializing database:', error);
   }
 
   return db;
+}
+
+function runMigrations() {
+  try {
+    // Migration: Add trading_mode column to existing tables
+    // This is safe to run multiple times (will fail silently if column exists)
+
+    // Check if trade_history needs migration
+    const tradeColumns = db.prepare("PRAGMA table_info(trade_history)").all();
+    if (!tradeColumns.some(col => col.name === 'trading_mode')) {
+      console.log('Migrating trade_history table...');
+      db.exec(`
+        ALTER TABLE trade_history
+        ADD COLUMN trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper'
+      `);
+      console.log('✓ trade_history migrated');
+    }
+
+    // Check if positions_tracker needs migration
+    const positionColumns = db.prepare("PRAGMA table_info(positions_tracker)").all();
+    if (!positionColumns.some(col => col.name === 'trading_mode')) {
+      console.log('Migrating positions_tracker table...');
+      // Drop old UNIQUE constraint on symbol only
+      db.exec(`
+        CREATE TABLE positions_tracker_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          symbol TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          avg_cost DECIMAL(10,4) NOT NULL,
+          current_value DECIMAL(10,2),
+          current_price DECIMAL(10,4),
+          stop_loss_percent DECIMAL(5,2),
+          take_profit_percent DECIMAL(5,2),
+          unrealized_pl DECIMAL(10,2),
+          unrealized_pl_percent DECIMAL(5,2),
+          trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
+          opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(symbol, trading_mode)
+        );
+
+        INSERT INTO positions_tracker_new
+        SELECT id, symbol, quantity, avg_cost, current_value, current_price,
+               stop_loss_percent, take_profit_percent, unrealized_pl, unrealized_pl_percent,
+               'paper', opened_at, last_updated
+        FROM positions_tracker;
+
+        DROP TABLE positions_tracker;
+        ALTER TABLE positions_tracker_new RENAME TO positions_tracker;
+      `);
+      console.log('✓ positions_tracker migrated');
+    }
+
+    // Check if closed_positions needs migration
+    const closedColumns = db.prepare("PRAGMA table_info(closed_positions)").all();
+    if (!closedColumns.some(col => col.name === 'trading_mode')) {
+      console.log('Migrating closed_positions table...');
+      db.exec(`
+        ALTER TABLE closed_positions
+        ADD COLUMN trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper'
+      `);
+      console.log('✓ closed_positions migrated');
+    }
+
+    // Check if daily_stats needs migration
+    const statsColumns = db.prepare("PRAGMA table_info(daily_stats)").all();
+    if (!statsColumns.some(col => col.name === 'trading_mode')) {
+      console.log('Migrating daily_stats table...');
+      db.exec(`
+        CREATE TABLE daily_stats_new (
+          date DATE NOT NULL,
+          trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
+          scans_run INTEGER DEFAULT 0,
+          matches_found INTEGER DEFAULT 0,
+          orders_placed INTEGER DEFAULT 0,
+          orders_filled INTEGER DEFAULT 0,
+          orders_rejected INTEGER DEFAULT 0,
+          total_spent DECIMAL(10,2) DEFAULT 0,
+          positions_opened INTEGER DEFAULT 0,
+          positions_closed INTEGER DEFAULT 0,
+          realized_pl DECIMAL(10,2) DEFAULT 0,
+          PRIMARY KEY (date, trading_mode)
+        );
+
+        INSERT INTO daily_stats_new
+        SELECT date, 'paper', scans_run, matches_found, orders_placed, orders_filled,
+               orders_rejected, total_spent, positions_opened, positions_closed, realized_pl
+        FROM daily_stats;
+
+        DROP TABLE daily_stats;
+        ALTER TABLE daily_stats_new RENAME TO daily_stats;
+      `);
+      console.log('✓ daily_stats migrated');
+    }
+
+    console.log('All migrations completed successfully');
+  } catch (error) {
+    console.error('Migration error:', error);
+    // Don't throw - let app continue even if migrations fail
+  }
 }
 
 function setupIPC() {
@@ -273,8 +376,9 @@ function setupIPC() {
   });
 
   ipcMain.handle('get-trade-history', (event, filters = {}) => {
-    let query = 'SELECT * FROM trade_history WHERE 1=1';
-    const params = [];
+    const tradingMode = process.env.TRADING_MODE || 'paper';
+    let query = 'SELECT * FROM trade_history WHERE trading_mode = ?';
+    const params = [tradingMode];
 
     if (filters.profile_id) {
       query += ' AND profile_id = ?';
@@ -299,17 +403,19 @@ function setupIPC() {
 
   // Position Management
   ipcMain.handle('get-positions', () => {
-    return db.prepare('SELECT * FROM positions_tracker ORDER BY opened_at DESC').all();
+    const tradingMode = process.env.TRADING_MODE || 'paper';
+    return db.prepare('SELECT * FROM positions_tracker WHERE trading_mode = ? ORDER BY opened_at DESC').all(tradingMode);
   });
 
   ipcMain.handle('update-position', (event, id, updates) => {
+    const tradingMode = process.env.TRADING_MODE || 'paper';
     const stmt = db.prepare(`
       UPDATE positions_tracker
       SET stop_loss_percent = ?, take_profit_percent = ?
-      WHERE id = ?
+      WHERE id = ? AND trading_mode = ?
     `);
 
-    stmt.run(updates.stop_loss_percent, updates.take_profit_percent, id);
+    stmt.run(updates.stop_loss_percent, updates.take_profit_percent, id, tradingMode);
     return { success: true };
   });
 
@@ -451,7 +557,8 @@ function setupIPC() {
 
   // Statistics
   ipcMain.handle('get-daily-stats', (event, date) => {
-    return db.prepare('SELECT * FROM daily_stats WHERE date = ?').get(date || new Date().toISOString().split('T')[0]);
+    const tradingMode = process.env.TRADING_MODE || 'paper';
+    return db.prepare('SELECT * FROM daily_stats WHERE date = ? AND trading_mode = ?').get(date || new Date().toISOString().split('T')[0], tradingMode);
   });
 }
 

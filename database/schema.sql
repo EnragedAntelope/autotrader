@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS trade_history (
   status TEXT CHECK(status IN ('pending', 'filled', 'rejected', 'cancelled', 'partial_fill')) NOT NULL,
   rejection_reason TEXT,
   order_id TEXT, -- Alpaca order ID
+  trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
   executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   filled_at TIMESTAMP,
   FOREIGN KEY (profile_id) REFERENCES screening_profiles(id) ON DELETE SET NULL
@@ -65,7 +66,7 @@ ON trade_history(executed_at DESC);
 -- Positions Tracker
 CREATE TABLE IF NOT EXISTS positions_tracker (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  symbol TEXT NOT NULL UNIQUE,
+  symbol TEXT NOT NULL,
   quantity INTEGER NOT NULL,
   avg_cost DECIMAL(10,4) NOT NULL,
   current_value DECIMAL(10,2),
@@ -74,8 +75,10 @@ CREATE TABLE IF NOT EXISTS positions_tracker (
   take_profit_percent DECIMAL(5,2),
   unrealized_pl DECIMAL(10,2),
   unrealized_pl_percent DECIMAL(5,2),
+  trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
   opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, trading_mode)
 );
 
 -- Risk Settings
@@ -96,7 +99,8 @@ INSERT OR IGNORE INTO risk_settings (id) VALUES (1);
 
 -- Daily Statistics
 CREATE TABLE IF NOT EXISTS daily_stats (
-  date DATE PRIMARY KEY,
+  date DATE NOT NULL,
+  trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
   scans_run INTEGER DEFAULT 0,
   matches_found INTEGER DEFAULT 0,
   orders_placed INTEGER DEFAULT 0,
@@ -105,7 +109,8 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   total_spent DECIMAL(10,2) DEFAULT 0,
   positions_opened INTEGER DEFAULT 0,
   positions_closed INTEGER DEFAULT 0,
-  realized_pl DECIMAL(10,2) DEFAULT 0
+  realized_pl DECIMAL(10,2) DEFAULT 0,
+  PRIMARY KEY (date, trading_mode)
 );
 
 -- Rate Limit Tracking (for API rate limiting)
@@ -166,6 +171,7 @@ CREATE TABLE IF NOT EXISTS closed_positions (
   realized_pl DECIMAL(10,2) NOT NULL,
   realized_pl_percent DECIMAL(5,2) NOT NULL,
   holding_period_days INTEGER,
+  trading_mode TEXT CHECK(trading_mode IN ('paper', 'live')) NOT NULL DEFAULT 'paper',
   opened_at TIMESTAMP NOT NULL,
   closed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   close_reason TEXT -- 'manual', 'stop_loss', 'take_profit'

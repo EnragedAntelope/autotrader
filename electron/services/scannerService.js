@@ -84,13 +84,14 @@ class ScannerService {
 
       // Update daily stats
       const today = new Date().toISOString().split('T')[0];
+      const tradingMode = process.env.TRADING_MODE || 'paper';
       db.prepare(`
-        INSERT INTO daily_stats (date, scans_run, matches_found)
-        VALUES (?, 1, ?)
-        ON CONFLICT(date) DO UPDATE SET
+        INSERT INTO daily_stats (date, trading_mode, scans_run, matches_found)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(date, trading_mode) DO UPDATE SET
           scans_run = scans_run + 1,
           matches_found = matches_found + ?
-      `).run(today, matches.length, matches.length);
+      `).run(today, tradingMode, matches.length, matches.length);
 
       const executionTime = Date.now() - startTime;
 
