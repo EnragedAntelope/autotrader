@@ -6,6 +6,7 @@ import {
   Button,
   TextField,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -52,12 +53,13 @@ import {
   DEFAULT_PROFILES,
   ParameterDefinition,
 } from '../constants/parameterDefinitions';
-import { AssetType, ScreeningProfile } from '../types';
+import { AssetType, ScreeningProfile, Watchlist } from '../types';
 
 interface ProfileFormData {
   name: string;
   asset_type: AssetType;
   parameters: Record<string, any>;
+  watchlist_id?: number;
   schedule_enabled: boolean;
   schedule_interval: number;
   schedule_market_hours_only: boolean;
@@ -67,6 +69,7 @@ interface ProfileFormData {
 
 function ScreenerBuilder() {
   const [profiles, setProfiles] = useState<ScreeningProfile[]>([]);
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [editingProfile, setEditingProfile] = useState<ScreeningProfile | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [templateMenuAnchor, setTemplateMenuAnchor] = useState<null | HTMLElement>(null);
@@ -81,6 +84,7 @@ function ScreenerBuilder() {
     name: '',
     asset_type: 'stock',
     parameters: {},
+    watchlist_id: undefined,
     schedule_enabled: false,
     schedule_interval: 15,
     schedule_market_hours_only: true,
@@ -90,6 +94,7 @@ function ScreenerBuilder() {
 
   useEffect(() => {
     loadProfiles();
+    loadWatchlists();
   }, []);
 
   const loadProfiles = async () => {
@@ -98,6 +103,15 @@ function ScreenerBuilder() {
       setProfiles(profileList);
     } catch (err: any) {
       setError(`Failed to load profiles: ${err.message}`);
+    }
+  };
+
+  const loadWatchlists = async () => {
+    try {
+      const watchlistData = await window.electron.getWatchlists();
+      setWatchlists(watchlistData);
+    } catch (err: any) {
+      console.error('Error loading watchlists:', err);
     }
   };
 
@@ -205,6 +219,7 @@ function ScreenerBuilder() {
         name: profile.name,
         asset_type: profile.asset_type,
         parameters: profile.parameters,
+        watchlist_id: profile.watchlist_id,
         schedule_enabled: Boolean(profile.schedule_enabled),
         schedule_interval: profile.schedule_interval || 15,
         schedule_market_hours_only: Boolean(profile.schedule_market_hours_only),
@@ -217,6 +232,7 @@ function ScreenerBuilder() {
         name: '',
         asset_type: 'stock',
         parameters: {},
+        watchlist_id: undefined,
         schedule_enabled: false,
         schedule_interval: 15,
         schedule_market_hours_only: true,
@@ -583,6 +599,31 @@ function ScreenerBuilder() {
                     <MenuItem value="stock">Stock</MenuItem>
                     <MenuItem value="option">Option</MenuItem>
                   </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Watchlist</InputLabel>
+                  <Select
+                    value={formData.watchlist_id || ''}
+                    label="Watchlist"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        watchlist_id: e.target.value ? Number(e.target.value) : undefined,
+                      })
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>Use Default Watchlist</em>
+                    </MenuItem>
+                    {watchlists.map((watchlist) => (
+                      <MenuItem key={watchlist.id} value={watchlist.id}>
+                        {watchlist.name} {watchlist.is_default === 1 && '(Default)'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>Choose which stocks to scan (optional - defaults to "All Major Stocks")</FormHelperText>
                 </FormControl>
               </Grid>
             </Grid>

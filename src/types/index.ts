@@ -119,6 +119,7 @@ export interface ScreeningProfile {
   name: string;
   asset_type: AssetType;
   parameters: ScreeningParameters;
+  watchlist_id?: number;
   schedule_enabled: boolean;
   schedule_interval: number;
   schedule_market_hours_only: boolean;
@@ -126,6 +127,19 @@ export interface ScreeningProfile {
   max_transaction_amount?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+// ============================================================================
+// Watchlist Types
+// ============================================================================
+
+export interface Watchlist {
+  id: number;
+  name: string;
+  description?: string;
+  is_default: number;
+  symbols?: string[];
+  created_at?: string;
 }
 
 // ============================================================================
@@ -354,6 +368,15 @@ export interface ElectronAPI {
 
   // Statistics
   getDailyStats: (date?: string) => Promise<DailyStats>;
+
+  // Watchlist Management
+  getWatchlists: () => Promise<Watchlist[]>;
+  getWatchlist: (id: number) => Promise<Watchlist | null>;
+  createWatchlist: (watchlist: { name: string; description?: string; symbols?: string[] }) => Promise<{ success: boolean; id: number }>;
+  updateWatchlist: (id: number, watchlist: { name: string; description?: string; symbols?: string[] }) => Promise<{ success: boolean }>;
+  deleteWatchlist: (id: number) => Promise<{ success: boolean }>;
+  addSymbolToWatchlist: (watchlistId: number, symbol: string) => Promise<{ success: boolean }>;
+  removeSymbolFromWatchlist: (watchlistId: number, symbol: string) => Promise<{ success: boolean }>;
 
   // Event listeners
   onNotification: (callback: (data: Notification) => void) => void;

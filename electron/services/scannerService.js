@@ -61,9 +61,9 @@ class ScannerService {
       let matches = [];
 
       if (profile.asset_type === 'stock') {
-        matches = await this.scanStocks(parameters, db);
+        matches = await this.scanStocks(parameters, profile.watchlist_id, db);
       } else if (profile.asset_type === 'call_option' || profile.asset_type === 'put_option') {
-        matches = await this.scanOptions(profile.asset_type, parameters, db);
+        matches = await this.scanOptions(profile.asset_type, parameters, profile.watchlist_id, db);
       }
 
       // Log results
@@ -126,8 +126,8 @@ class ScannerService {
    * Scan for stocks matching criteria
    * Phase 2: Full implementation with all parameters
    */
-  async scanStocks(parameters, db) {
-    const symbols = await this.getWatchlist(db);
+  async scanStocks(parameters, watchlistId, db) {
+    const symbols = await this.getWatchlist(watchlistId, db);
     const matches = [];
 
     console.log(`Scanning ${symbols.length} symbols with criteria:`, Object.keys(parameters));
@@ -170,8 +170,8 @@ class ScannerService {
    * Scan for options matching criteria
    * Implemented in Phase 3
    */
-  async scanOptions(assetType, parameters, db) {
-    const underlyingSymbols = await this.getWatchlist(db);
+  async scanOptions(assetType, parameters, watchlistId, db) {
+    const underlyingSymbols = await this.getWatchlist(watchlistId, db);
     const matches = [];
     const optionType = assetType === 'call_option' ? 'call' : 'put';
 
@@ -933,80 +933,40 @@ class ScannerService {
 
   /**
    * Get a watchlist of symbols to scan
-   * Checks database for custom watchlist, falls back to default
+   * Uses custom watchlist from database, or default if not specified
    */
-  async getWatchlist(db) {
-    // TODO: Implement custom watchlist feature in database
-    // For Phase 2, using expanded default watchlist
+  async getWatchlist(watchlistId, db) {
+    try {
+      // If no watchlist specified, use the default watchlist
+      let targetWatchlistId = watchlistId;
 
-    return [
-      // Tech giants
-      'AAPL',
-      'MSFT',
-      'GOOGL',
-      'AMZN',
-      'NVDA',
-      'META',
-      'TSLA',
-      'NFLX',
-      'ADBE',
-      'CRM',
-      'ORCL',
-      'CSCO',
-      'INTC',
-      'AMD',
-      'QCOM',
-      // Financials
-      'JPM',
-      'BAC',
-      'WFC',
-      'GS',
-      'MS',
-      'C',
-      'V',
-      'MA',
-      'PYPL',
-      'AXP',
-      // Healthcare
-      'JNJ',
-      'UNH',
-      'PFE',
-      'ABBV',
-      'LLY',
-      'TMO',
-      'ABT',
-      'DHR',
-      'MRK',
-      'BMY',
-      // Consumer
-      'WMT',
-      'HD',
-      'MCD',
-      'NKE',
-      'SBUX',
-      'TGT',
-      'LOW',
-      'COST',
-      'PG',
-      'KO',
-      'PEP',
-      'PM',
-      // Industrials
-      'BA',
-      'CAT',
-      'GE',
-      'UPS',
-      'HON',
-      'MMM',
-      'LMT',
-      'RTX',
-      // Energy
-      'XOM',
-      'CVX',
-      'COP',
-      'SLB',
-      'EOG',
-    ];
+      if (!targetWatchlistId) {
+        const defaultWatchlist = db.prepare('SELECT id FROM watchlists WHERE is_default = 1').get();
+        if (defaultWatchlist) {
+          targetWatchlistId = defaultWatchlist.id;
+        } else {
+          // Fallback: use first available watchlist
+          const anyWatchlist = db.prepare('SELECT id FROM watchlists ORDER BY created_at ASC LIMIT 1').get();
+          if (anyWatchlist) {
+            targetWatchlistId = anyWatchlist.id;
+          } else {
+            console.warn('No watchlists found in database, returning empty array');
+            return [];
+          }
+        }
+      }
+
+      // Get symbols from the watchlist
+      const symbols = db.prepare('SELECT symbol FROM watchlist_symbols WHERE watchlist_id = ? ORDER BY symbol ASC').all(targetWatchlistId);
+
+      const symbolArray = symbols.map(s => s.symbol);
+      console.log(`Using watchlist ID ${targetWatchlistId} with ${symbolArray.length} symbols`);
+
+      return symbolArray;
+    } catch (error) {
+      console.error('Error fetching watchlist:', error);
+      return [];
+    }
   }
 }
 

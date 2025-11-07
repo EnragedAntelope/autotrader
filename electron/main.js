@@ -98,11 +98,149 @@ function initializeDatabase() {
 
     // Run migrations for existing databases
     runMigrations();
+
+    // Initialize default watchlists if needed
+    initializeDefaultWatchlists();
   } catch (error) {
     console.error('Error initializing database:', error);
   }
 
   return db;
+}
+
+function initializeDefaultWatchlists() {
+  try {
+    // Check if any watchlists already exist
+    const existingWatchlists = db.prepare('SELECT COUNT(*) as count FROM watchlists').get();
+    if (existingWatchlists.count > 0) {
+      console.log('Watchlists already initialized, skipping...');
+      return;
+    }
+
+    console.log('Creating default watchlists...');
+
+    // Default watchlist data
+    const watchlists = [
+      {
+        name: 'All Major Stocks',
+        description: 'Comprehensive list of major US stocks across all sectors (60 stocks)',
+        is_default: 1,
+        symbols: [
+          // Tech giants
+          'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'NFLX', 'ADBE', 'CRM',
+          'ORCL', 'CSCO', 'INTC', 'AMD', 'QCOM',
+          // Financials
+          'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'V', 'MA', 'PYPL', 'AXP',
+          // Healthcare
+          'JNJ', 'UNH', 'PFE', 'ABBV', 'LLY', 'TMO', 'ABT', 'DHR', 'MRK', 'BMY',
+          // Consumer
+          'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'COST', 'PG', 'KO', 'PEP', 'PM',
+          // Industrials
+          'BA', 'CAT', 'GE', 'UPS', 'HON', 'MMM', 'LMT', 'RTX',
+          // Energy
+          'XOM', 'CVX', 'COP', 'SLB', 'EOG'
+        ]
+      },
+      {
+        name: 'Tech Giants',
+        description: 'FAANG + major technology companies',
+        is_default: 0,
+        symbols: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'NFLX', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'AMD', 'INTC', 'QCOM']
+      },
+      {
+        name: 'Dividend Aristocrats',
+        description: 'Reliable dividend-paying stocks with long track records',
+        is_default: 0,
+        symbols: ['JNJ', 'PG', 'KO', 'PEP', 'WMT', 'MCD', 'MMM', 'CAT', 'XOM', 'CVX', 'PM', 'ABT', 'LOW', 'HD', 'TGT']
+      },
+      {
+        name: 'Financial Sector',
+        description: 'Banks, payment processors, and financial services',
+        is_default: 0,
+        symbols: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'V', 'MA', 'PYPL', 'AXP', 'BLK', 'SCHW', 'USB', 'PNC', 'TFC']
+      },
+      {
+        name: 'Healthcare Leaders',
+        description: 'Pharmaceuticals, biotech, and medical devices',
+        is_default: 0,
+        symbols: ['JNJ', 'UNH', 'PFE', 'ABBV', 'LLY', 'TMO', 'ABT', 'DHR', 'MRK', 'BMY', 'AMGN', 'GILD', 'CVS', 'CI', 'HUM']
+      },
+      {
+        name: 'Energy & Commodities',
+        description: 'Oil, gas, and commodity-related stocks',
+        is_default: 0,
+        symbols: ['XOM', 'CVX', 'COP', 'SLB', 'EOG', 'PSX', 'MPC', 'VLO', 'OXY', 'HAL', 'BKR', 'DVN', 'HES', 'MRO', 'APA']
+      },
+      {
+        name: 'Cloud & SaaS',
+        description: 'Cloud computing and software-as-a-service companies',
+        is_default: 0,
+        symbols: ['MSFT', 'AMZN', 'GOOGL', 'CRM', 'ORCL', 'ADBE', 'NOW', 'INTU', 'WDAY', 'ZM', 'DDOG', 'SNOW', 'CRWD', 'OKTA', 'MDB']
+      },
+      {
+        name: 'Consumer Staples',
+        description: 'Essential consumer goods and retail',
+        is_default: 0,
+        symbols: ['WMT', 'COST', 'PG', 'KO', 'PEP', 'PM', 'MO', 'CL', 'KMB', 'GIS', 'K', 'HSY', 'CPB', 'SJM', 'CAG']
+      },
+      {
+        name: 'E-commerce & Retail',
+        description: 'Online and traditional retail leaders',
+        is_default: 0,
+        symbols: ['AMZN', 'WMT', 'HD', 'TGT', 'COST', 'LOW', 'EBAY', 'ETSY', 'W', 'CHWY', 'BBY', 'DG', 'DLTR', 'ROST', 'TJX']
+      },
+      {
+        name: 'Semiconductors',
+        description: 'Chip manufacturers and semiconductor equipment',
+        is_default: 0,
+        symbols: ['NVDA', 'AMD', 'INTC', 'QCOM', 'AVGO', 'TSM', 'MU', 'AMAT', 'LRCX', 'KLAC', 'MCHP', 'ADI', 'TXN', 'NXPI', 'ON']
+      },
+      {
+        name: 'EV & Clean Energy',
+        description: 'Electric vehicles and renewable energy',
+        is_default: 0,
+        symbols: ['TSLA', 'F', 'GM', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'ENPH', 'SEDG', 'FSLR', 'RUN', 'PLUG', 'BE', 'CHPT']
+      },
+      {
+        name: 'Value Plays',
+        description: 'Undervalued stocks with strong fundamentals (starter list)',
+        is_default: 0,
+        symbols: ['BAC', 'WFC', 'C', 'F', 'GM', 'XOM', 'CVX', 'INTC', 'VZ', 'T', 'CSCO', 'MO', 'PM', 'PFE', 'BMY']
+      },
+      {
+        name: 'Growth Momentum',
+        description: 'High-growth stocks with strong momentum (starter list)',
+        is_default: 0,
+        symbols: ['NVDA', 'META', 'TSLA', 'AMD', 'NOW', 'CRWD', 'SNOW', 'DDOG', 'NET', 'PLTR', 'U', 'SHOP', 'SQ', 'MELI', 'COIN']
+      },
+      {
+        name: 'My Custom Stocks',
+        description: 'Empty watchlist for your custom stock picks',
+        is_default: 0,
+        symbols: []
+      }
+    ];
+
+    // Insert watchlists and symbols
+    const insertWatchlist = db.prepare('INSERT INTO watchlists (name, description, is_default) VALUES (?, ?, ?)');
+    const insertSymbol = db.prepare('INSERT INTO watchlist_symbols (watchlist_id, symbol) VALUES (?, ?)');
+
+    for (const watchlist of watchlists) {
+      const result = insertWatchlist.run(watchlist.name, watchlist.description, watchlist.is_default);
+      const watchlistId = result.lastInsertRowid;
+
+      // Insert symbols for this watchlist
+      for (const symbol of watchlist.symbols) {
+        insertSymbol.run(watchlistId, symbol);
+      }
+
+      console.log(`✓ Created watchlist: ${watchlist.name} (${watchlist.symbols.length} symbols)`);
+    }
+
+    console.log('Default watchlists initialized successfully');
+  } catch (error) {
+    console.error('Error initializing default watchlists:', error);
+  }
 }
 
 function runMigrations() {
@@ -196,6 +334,17 @@ function runMigrations() {
         ALTER TABLE daily_stats_new RENAME TO daily_stats;
       `);
       console.log('✓ daily_stats migrated');
+    }
+
+    // Check if screening_profiles needs watchlist_id column
+    const profileColumns = db.prepare("PRAGMA table_info(screening_profiles)").all();
+    if (!profileColumns.some(col => col.name === 'watchlist_id')) {
+      console.log('Migrating screening_profiles table to add watchlist_id...');
+      db.exec(`
+        ALTER TABLE screening_profiles
+        ADD COLUMN watchlist_id INTEGER REFERENCES watchlists(id) ON DELETE SET NULL
+      `);
+      console.log('✓ screening_profiles migrated');
     }
 
     console.log('All migrations completed successfully');
@@ -451,6 +600,108 @@ function setupIPC() {
     );
 
     return { success: true };
+  });
+
+  // Watchlist Management
+  ipcMain.handle('get-watchlists', () => {
+    return db.prepare('SELECT * FROM watchlists ORDER BY is_default DESC, name ASC').all();
+  });
+
+  ipcMain.handle('get-watchlist', (event, id) => {
+    const watchlist = db.prepare('SELECT * FROM watchlists WHERE id = ?').get(id);
+    if (!watchlist) return null;
+
+    const symbols = db.prepare('SELECT symbol FROM watchlist_symbols WHERE watchlist_id = ? ORDER BY symbol ASC').all(id);
+    watchlist.symbols = symbols.map(s => s.symbol);
+    return watchlist;
+  });
+
+  ipcMain.handle('create-watchlist', (event, watchlist) => {
+    const { name, description, symbols } = watchlist;
+
+    try {
+      const insertWatchlist = db.prepare('INSERT INTO watchlists (name, description, is_default) VALUES (?, ?, 0)');
+      const result = insertWatchlist.run(name, description);
+      const watchlistId = result.lastInsertRowid;
+
+      // Insert symbols
+      if (symbols && symbols.length > 0) {
+        const insertSymbol = db.prepare('INSERT INTO watchlist_symbols (watchlist_id, symbol) VALUES (?, ?)');
+        for (const symbol of symbols) {
+          insertSymbol.run(watchlistId, symbol.toUpperCase());
+        }
+      }
+
+      return { success: true, id: watchlistId };
+    } catch (error) {
+      console.error('Error creating watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('update-watchlist', (event, id, watchlist) => {
+    const { name, description, symbols } = watchlist;
+
+    try {
+      // Update watchlist metadata
+      db.prepare('UPDATE watchlists SET name = ?, description = ? WHERE id = ?').run(name, description, id);
+
+      // Replace all symbols
+      db.prepare('DELETE FROM watchlist_symbols WHERE watchlist_id = ?').run(id);
+
+      if (symbols && symbols.length > 0) {
+        const insertSymbol = db.prepare('INSERT INTO watchlist_symbols (watchlist_id, symbol) VALUES (?, ?)');
+        for (const symbol of symbols) {
+          insertSymbol.run(id, symbol.toUpperCase());
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('delete-watchlist', (event, id) => {
+    try {
+      // Check if it's the default watchlist
+      const watchlist = db.prepare('SELECT is_default FROM watchlists WHERE id = ?').get(id);
+      if (watchlist && watchlist.is_default) {
+        throw new Error('Cannot delete the default watchlist');
+      }
+
+      // Set any profiles using this watchlist to null
+      db.prepare('UPDATE screening_profiles SET watchlist_id = NULL WHERE watchlist_id = ?').run(id);
+
+      // Delete watchlist (symbols will cascade delete)
+      db.prepare('DELETE FROM watchlists WHERE id = ?').run(id);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('add-symbol-to-watchlist', (event, watchlistId, symbol) => {
+    try {
+      db.prepare('INSERT OR IGNORE INTO watchlist_symbols (watchlist_id, symbol) VALUES (?, ?)').run(watchlistId, symbol.toUpperCase());
+      return { success: true };
+    } catch (error) {
+      console.error('Error adding symbol to watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('remove-symbol-from-watchlist', (event, watchlistId, symbol) => {
+    try {
+      db.prepare('DELETE FROM watchlist_symbols WHERE watchlist_id = ? AND symbol = ?').run(watchlistId, symbol.toUpperCase());
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing symbol from watchlist:', error);
+      throw error;
+    }
   });
 
   // App Settings
