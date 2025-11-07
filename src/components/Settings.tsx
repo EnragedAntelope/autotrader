@@ -69,6 +69,14 @@ function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Theme toggle handler with notification
+  const handleThemeToggle = () => {
+    toggleTheme();
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setSuccess(`Theme changed to ${newMode} mode`);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -181,7 +189,7 @@ function Settings() {
             <LightModeIcon color={mode === 'light' ? 'primary' : 'disabled'} />
             <Switch
               checked={mode === 'dark'}
-              onChange={toggleTheme}
+              onChange={handleThemeToggle}
               color="primary"
             />
             <DarkModeIcon color={mode === 'dark' ? 'primary' : 'disabled'} />

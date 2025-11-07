@@ -176,11 +176,17 @@ function ScanResults() {
     return new Date(timestamp).toLocaleString();
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined | null) => {
+    if (price === undefined || price === null || isNaN(price)) {
+      return 'N/A';
+    }
     return `$${price.toFixed(2)}`;
   };
 
-  const formatPercent = (percent: number) => {
+  const formatPercent = (percent: number | undefined | null) => {
+    if (percent === undefined || percent === null || isNaN(percent)) {
+      return 'N/A';
+    }
     return `${percent > 0 ? '+' : ''}${percent.toFixed(2)}%`;
   };
 
@@ -354,23 +360,27 @@ function ScanResults() {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell align="right">{formatPrice(result.market_data_snapshot.price)}</TableCell>
+                  <TableCell align="right">{formatPrice(result.market_data_snapshot?.price)}</TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                      {result.market_data_snapshot.changePercent > 0 ? (
+                      {result.market_data_snapshot?.changePercent !== undefined && result.market_data_snapshot.changePercent > 0 ? (
                         <TrendingUpIcon fontSize="small" color="success" sx={{ mr: 0.5 }} />
-                      ) : (
+                      ) : result.market_data_snapshot?.changePercent !== undefined ? (
                         <TrendingDownIcon fontSize="small" color="error" sx={{ mr: 0.5 }} />
-                      )}
+                      ) : null}
                       <Typography
                         variant="body2"
-                        color={result.market_data_snapshot.changePercent > 0 ? 'success.main' : 'error.main'}
+                        color={result.market_data_snapshot?.changePercent !== undefined && result.market_data_snapshot.changePercent > 0 ? 'success.main' : 'error.main'}
                       >
-                        {formatPercent(result.market_data_snapshot.changePercent)}
+                        {formatPercent(result.market_data_snapshot?.changePercent)}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="right">{result.market_data_snapshot.volume.toLocaleString()}</TableCell>
+                  <TableCell align="right">
+                    {result.market_data_snapshot?.volume !== undefined && result.market_data_snapshot.volume !== null
+                      ? result.market_data_snapshot.volume.toLocaleString()
+                      : 'N/A'}
+                  </TableCell>
                   <TableCell align="center">
                     <Tooltip title="View Details">
                       <IconButton size="small" onClick={() => handleViewDetails(result)}>
