@@ -14,7 +14,9 @@ A cross-platform desktop application for automated stock and options screening w
 - **Advanced Parameter Library**: 45+ parameters including fundamental ratios (P/E, P/B, D/E, Current Ratio, ROE, etc.)
 - **Technical Indicators**: RSI, Beta, momentum, volume analysis
 - **Options Greeks**: Delta, gamma, theta, vega, IV with educational tooltips
-- **7 Pre-Built Templates**: Value stocks, growth stocks, dividend stocks, momentum, high-delta calls, ATM calls, protective puts
+- **8 Pre-Built Templates**: Value stocks, growth stocks, dividend stocks, momentum, fast scan, high-delta calls, ATM calls, protective puts
+- **13 Pre-Built Watchlists**: Tech giants, dividend aristocrats, financial sector, healthcare, energy, semiconductors, EV/clean energy, and more
+- **Custom Watchlists**: Create and manage your own stock lists for focused scanning
 - **Help Tooltips**: Every parameter includes educational content and suggested "good" values
 - **Input Validation**: Prevents invalid data entry with real-time feedback
 
@@ -412,6 +414,53 @@ This creates distributable packages in the `dist-electron` directory.
 
 ---
 
+## Quick Start Guide
+
+**Complete this 5-minute tutorial to run your first automated scan:**
+
+### Step 1: Verify Paper Trading Mode (30 seconds)
+1. Launch the app: `npm run dev`
+2. Look at the top-right corner - confirm green chip says "PAPER"
+3. If you see "LIVE" mode, go to Settings and switch to Paper Trading
+
+### Step 2: Explore Pre-Built Watchlists (1 minute)
+1. Click **"Watchlists"** in the left sidebar (3rd item)
+2. Click on "**Dividend Aristocrats**" to see the 15 reliable dividend-paying stocks
+3. Click on "**Tech Giants**" to see FAANG + major tech companies
+4. These 13 pre-built watchlists auto-created on first launch
+
+### Step 3: Create Your First Screening Profile (2 minutes)
+1. Click **"Screener Builder"** in the left sidebar
+2. Click **"Load Template"** → Select **"Fast Scan (Price & Volume)"**
+   - This template scans quickly without API rate limits
+3. In the dialog:
+   - **Name**: "My First Scan"
+   - **Watchlist**: Select "Tech Giants" (scans only 15 stocks instead of 60)
+   - Leave other settings as defaults
+4. Click **"Create Profile"**
+
+### Step 4: Run Your First Scan (1 minute)
+1. Find "My First Scan" in the profile list
+2. Click the **Play** button (▶) next to it
+3. Watch the console as it scans each of the 15 tech stocks
+4. When complete, click **"View Results"** to see matches
+
+### Step 5: Review Results (30 seconds)
+1. You should see several tech stocks that match the price/volume criteria
+2. Each result shows: Symbol, Price, Volume, Day Change
+3. Click on any row to see full market data
+
+**🎉 Congratulations!** You just completed your first automated stock scan!
+
+### Next Steps:
+- **Explore Other Templates**: Try "Value Stocks" or "Dividend Income"
+- **Customize Parameters**: Edit a profile to adjust screening criteria
+- **Create Custom Watchlist**: Add your favorite stocks to "My Custom Stocks" watchlist
+- **Enable Automation**: Turn on scheduled scanning (run every 15 minutes)
+- **Review Risk Settings**: Set transaction limits before enabling auto-execute
+
+---
+
 ## General Troubleshooting
 
 ### Electron Security Warning (CSP) - EXPECTED IN DEV MODE
@@ -493,16 +542,31 @@ alpaca-trading-scanner/
 3. Check that your account info loads correctly
 4. Explore the Dashboard to see account summary and P/L statistics
 
+### Managing Watchlists
+
+1. Navigate to **Watchlists**
+2. Explore the 13 pre-built watchlists (Tech Giants, Dividend Aristocrats, etc.)
+3. Click on a watchlist to view its symbols
+4. To create a custom watchlist:
+   - Click "New Watchlist"
+   - Enter name and description
+   - Add symbols one at a time (e.g., AAPL, MSFT)
+   - Save
+
+**Pro Tip**: Use focused watchlists (10-15 stocks) for faster scans and lower API usage!
+
 ### Creating a Screening Profile
 
 1. Navigate to **Screener Builder**
 2. Click "Load Template" to start with a pre-built profile (recommended)
 3. Enter a name for your profile
 4. Select asset type (Stock, Call Option, or Put Option)
-5. Set your screening parameters (use help tooltips for guidance)
-6. Click "Test Scan" to preview results
-7. Configure automation settings if desired
-8. Save the profile
+5. **Select a watchlist** (optional - defaults to "All Major Stocks")
+   - Choose a focused watchlist for faster, targeted scans
+6. Set your screening parameters (use help tooltips for guidance)
+7. Click "Test Scan" to preview results
+8. Configure automation settings if desired
+9. Save the profile
 
 ### Risk Management Settings
 

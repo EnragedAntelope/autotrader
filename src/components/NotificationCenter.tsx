@@ -76,7 +76,23 @@ function NotificationCenter({ onClose }: Props) {
               >
                 <ListItemText
                   primary={notification.title}
-                  secondary={notification.message}
+                  secondary={
+                    <>
+                      <Typography variant="body2" component="span">
+                        {notification.message}
+                      </Typography>
+                      {notification.timestamp && (
+                        <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 0.5 }}>
+                          {new Date(notification.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Typography>
+                      )}
+                    </>
+                  }
                   primaryTypographyProps={{
                     fontWeight: notification.read ? 'normal' : 'bold',
                   }}

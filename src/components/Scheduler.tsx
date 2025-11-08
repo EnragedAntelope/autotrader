@@ -206,9 +206,11 @@ function Scheduler() {
         <Typography variant="h4">Scheduler</Typography>
         <Box>
           <Tooltip title="Refresh">
-            <IconButton onClick={handleRefresh} disabled={loading}>
-              <RefreshIcon />
-            </IconButton>
+            <Box component="span" sx={{ display: 'inline-flex' }}>
+              <IconButton onClick={handleRefresh} disabled={loading}>
+                <RefreshIcon />
+              </IconButton>
+            </Box>
           </Tooltip>
         </Box>
       </Box>

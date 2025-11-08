@@ -207,9 +207,11 @@ function TradeHistory() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Trade History</Typography>
         <Tooltip title="Refresh">
-          <IconButton onClick={loadTrades} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
+          <Box component="span" sx={{ display: 'inline-flex' }}>
+            <IconButton onClick={loadTrades} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Box>
         </Tooltip>
       </Box>
 
