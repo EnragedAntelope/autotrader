@@ -934,9 +934,18 @@ class ScannerService {
   /**
    * Get a watchlist of symbols to scan
    * Uses custom watchlist from database, or default if not specified
+   * Special watchlist ID "ALL_STOCKS" will fetch all tradable stocks from Alpaca
    */
   async getWatchlist(watchlistId, db) {
     try {
+      // Special case: scan ALL stocks
+      if (watchlistId === 'ALL_STOCKS') {
+        console.log('Fetching ALL tradable stocks from Alpaca...');
+        const allStocks = await this.getAllTradableStocks();
+        console.log(`Found ${allStocks.length} tradable stocks`);
+        return allStocks;
+      }
+
       // If no watchlist specified, use the default watchlist
       let targetWatchlistId = watchlistId;
 
@@ -959,12 +968,46 @@ class ScannerService {
       // Get symbols from the watchlist
       const symbols = db.prepare('SELECT symbol FROM watchlist_symbols WHERE watchlist_id = ? ORDER BY symbol ASC').all(targetWatchlistId);
 
+      // Check if this is a special watchlist
+      if (symbols.length === 1 && symbols[0].symbol.startsWith('__SPECIAL__')) {
+        const specialId = symbols[0].symbol.replace('__SPECIAL__', '').replace('__', '');
+        console.log(`Detected special watchlist: ${specialId}`);
+        return this.getWatchlist(specialId, db);  // Recursive call with special ID
+      }
+
       const symbolArray = symbols.map(s => s.symbol);
       console.log(`Using watchlist ID ${targetWatchlistId} with ${symbolArray.length} symbols`);
 
       return symbolArray;
     } catch (error) {
       console.error('Error fetching watchlist:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all tradable stocks from Alpaca
+   * Returns array of stock symbols
+   */
+  async getAllTradableStocks() {
+    try {
+      const AlpacaService = require('./alpacaService');
+      const assets = await AlpacaService.getAllAssets();
+
+      // Filter for US stocks only (exclude crypto, forex, etc.)
+      const stocks = assets
+        .filter(asset =>
+          asset.tradable &&
+          asset.status === 'active' &&
+          asset.class === 'us_equity' &&
+          !asset.symbol.includes('/')  // Exclude forex pairs
+        )
+        .map(asset => asset.symbol)
+        .sort();
+
+      return stocks;
+    } catch (error) {
+      console.error('Error fetching all tradable stocks:', error);
       return [];
     }
   }

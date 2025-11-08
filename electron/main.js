@@ -122,6 +122,12 @@ function initializeDefaultWatchlists() {
     // Default watchlist data
     const watchlists = [
       {
+        name: 'ALL US STOCKS (Universe Scanner)',
+        description: 'Scan ALL tradable US stocks from Alpaca (~10,000+ stocks). Warning: This will use significantly more API calls and take longer to complete.',
+        is_default: 0,
+        special_id: 'ALL_STOCKS'  // Special marker for universal scanning
+      },
+      {
         name: 'All Major Stocks',
         description: 'Comprehensive list of major US stocks across all sectors (60 stocks)',
         is_default: 1,
@@ -229,12 +235,18 @@ function initializeDefaultWatchlists() {
       const result = insertWatchlist.run(watchlist.name, watchlist.description, watchlist.is_default);
       const watchlistId = result.lastInsertRowid;
 
-      // Insert symbols for this watchlist
-      for (const symbol of watchlist.symbols) {
-        insertSymbol.run(watchlistId, symbol);
+      // Handle special watchlists (like ALL_STOCKS) that don't need symbols
+      if (watchlist.special_id) {
+        // Store the special ID as a special symbol marker
+        insertSymbol.run(watchlistId, `__SPECIAL__${watchlist.special_id}__`);
+        console.log(`✓ Created special watchlist: ${watchlist.name} (${watchlist.special_id})`);
+      } else if (watchlist.symbols) {
+        // Insert symbols for regular watchlists
+        for (const symbol of watchlist.symbols) {
+          insertSymbol.run(watchlistId, symbol);
+        }
+        console.log(`✓ Created watchlist: ${watchlist.name} (${watchlist.symbols.length} symbols)`);
       }
-
-      console.log(`✓ Created watchlist: ${watchlist.name} (${watchlist.symbols.length} symbols)`);
     }
 
     console.log('Default watchlists initialized successfully');

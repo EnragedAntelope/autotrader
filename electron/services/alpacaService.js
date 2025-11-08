@@ -386,6 +386,31 @@ class AlpacaService {
   }
 
   /**
+   * Get all active tradable assets
+   * Returns complete list of stocks available for trading
+   */
+  async getAllAssets() {
+    try {
+      const assets = await this.client.getAssets({ status: 'active' });
+      return assets.map((asset) => ({
+        symbol: asset.symbol,
+        name: asset.name,
+        exchange: asset.exchange,
+        class: asset.class,
+        status: asset.status,
+        tradable: asset.tradable,
+        marginable: asset.marginable,
+        shortable: asset.shortable,
+        easy_to_borrow: asset.easy_to_borrow,
+        fractionable: asset.fractionable,
+      }));
+    } catch (error) {
+      console.error('Error getting all assets:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Search for assets
    */
   async searchAssets(query) {

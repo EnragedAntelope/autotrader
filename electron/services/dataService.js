@@ -87,6 +87,223 @@ class DataService {
   }
 
   /**
+   * Get historical daily prices from Alpha Vantage
+   * @param {string} symbol - Stock symbol
+   * @param {string} outputsize - 'compact' (last 100 days) or 'full' (20+ years)
+   * @returns {Promise<Array>} Array of {date, open, high, low, close, volume}
+   */
+  async getHistoricalPrices(symbol, outputsize = 'compact') {
+    if (!this.alphaVantageKey) {
+      throw new Error('Alpha Vantage API key not configured');
+    }
+
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized - call initialize(db) first');
+    }
+
+    return this.rateLimiter.executeRequest('alphaVantage', async () => {
+      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=${outputsize}&apikey=${this.alphaVantageKey}`;
+      const response = await axios.get(url);
+
+      if (response.data.Note) {
+        throw new Error('Alpha Vantage rate limit exceeded');
+      }
+
+      if (response.data.Error) {
+        throw new Error(`Alpha Vantage Error: ${response.data.Error}`);
+      }
+
+      if (response.data['Information']) {
+        throw new Error(`Alpha Vantage: ${response.data['Information']}`);
+      }
+
+      const timeSeries = response.data['Time Series (Daily)'];
+      if (!timeSeries) {
+        throw new Error('No historical data available');
+      }
+
+      // Convert to array format
+      const prices = [];
+      for (const [date, values] of Object.entries(timeSeries)) {
+        prices.push({
+          date,
+          open: parseFloat(values['1. open']),
+          high: parseFloat(values['2. high']),
+          low: parseFloat(values['3. low']),
+          close: parseFloat(values['4. close']),
+          volume: parseInt(values['5. volume'])
+        });
+      }
+
+      // Sort by date descending (most recent first)
+      prices.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return prices;
+    });
+  }
+
+  /**
+   * Get income statement data from Alpha Vantage
+   * @param {string} symbol - Stock symbol
+   * @returns {Promise<Object>} Income statement data (annual and quarterly)
+   */
+  async getIncomeStatement(symbol) {
+    if (!this.alphaVantageKey) {
+      throw new Error('Alpha Vantage API key not configured');
+    }
+
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized - call initialize(db) first');
+    }
+
+    return this.rateLimiter.executeRequest('alphaVantage', async () => {
+      const url = `https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
+      const response = await axios.get(url);
+
+      if (response.data.Note) {
+        throw new Error('Alpha Vantage rate limit exceeded');
+      }
+
+      if (response.data.Error) {
+        throw new Error(`Alpha Vantage Error: ${response.data.Error}`);
+      }
+
+      return {
+        symbol,
+        annualReports: response.data.annualReports || [],
+        quarterlyReports: response.data.quarterlyReports || []
+      };
+    });
+  }
+
+  /**
+   * Get balance sheet data from Alpha Vantage
+   * @param {string} symbol - Stock symbol
+   * @returns {Promise<Object>} Balance sheet data (annual and quarterly)
+   */
+  async getBalanceSheet(symbol) {
+    if (!this.alphaVantageKey) {
+      throw new Error('Alpha Vantage API key not configured');
+    }
+
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized - call initialize(db) first');
+    }
+
+    return this.rateLimiter.executeRequest('alphaVantage', async () => {
+      const url = `https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
+      const response = await axios.get(url);
+
+      if (response.data.Note) {
+        throw new Error('Alpha Vantage rate limit exceeded');
+      }
+
+      if (response.data.Error) {
+        throw new Error(`Alpha Vantage Error: ${response.data.Error}`);
+      }
+
+      return {
+        symbol,
+        annualReports: response.data.annualReports || [],
+        quarterlyReports: response.data.quarterlyReports || []
+      };
+    });
+  }
+
+  /**
+   * Get cash flow data from Alpha Vantage
+   * @param {string} symbol - Stock symbol
+   * @returns {Promise<Object>} Cash flow data (annual and quarterly)
+   */
+  async getCashFlow(symbol) {
+    if (!this.alphaVantageKey) {
+      throw new Error('Alpha Vantage API key not configured');
+    }
+
+    if (!this.rateLimiter) {
+      throw new Error('DataService not initialized - call initialize(db) first');
+    }
+
+    return this.rateLimiter.executeRequest('alphaVantage', async () => {
+      const url = `https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
+      const response = await axios.get(url);
+
+      if (response.data.Note) {
+        throw new Error('Alpha Vantage rate limit exceeded');
+      }
+
+      if (response.data.Error) {
+        throw new Error(`Alpha Vantage Error: ${response.data.Error}`);
+      }
+
+      return {
+        symbol,
+        annualReports: response.data.annualReports || [],
+        quarterlyReports: response.data.quarterlyReports || []
+      };
+    });
+  }
+
+  /**
+   * Calculate advanced fundamental metrics from financial statements
+   * @param {string} symbol - Stock symbol
+   * @returns {Promise<Object>} Calculated ratios (ROE, ROA, Current Ratio, etc.)
+   */
+  async getAdvancedFundamentals(symbol) {
+    try {
+      const [incomeStatement, balanceSheet] = await Promise.all([
+        this.getIncomeStatement(symbol),
+        this.getBalanceSheet(symbol)
+      ]);
+
+      // Get most recent annual reports
+      const latestIncome = incomeStatement.annualReports[0] || {};
+      const latestBalance = balanceSheet.annualReports[0] || {};
+
+      // Calculate ratios
+      const netIncome = parseFloat(latestIncome.netIncome) || 0;
+      const totalAssets = parseFloat(latestBalance.totalAssets) || 0;
+      const shareholderEquity = parseFloat(latestBalance.totalShareholderEquity) || 0;
+      const currentAssets = parseFloat(latestBalance.totalCurrentAssets) || 0;
+      const currentLiabilities = parseFloat(latestBalance.totalCurrentLiabilities) || 0;
+      const totalDebt = parseFloat(latestBalance.shortLongTermDebtTotal) || parseFloat(latestBalance.longTermDebt) || 0;
+      const inventory = parseFloat(latestBalance.inventory) || 0;
+
+      return {
+        symbol,
+        // Return on Equity (ROE)
+        roe: shareholderEquity !== 0 ? ((netIncome / shareholderEquity) * 100) : 0,
+        // Return on Assets (ROA)
+        roa: totalAssets !== 0 ? ((netIncome / totalAssets) * 100) : 0,
+        // Current Ratio
+        currentRatio: currentLiabilities !== 0 ? (currentAssets / currentLiabilities) : 0,
+        // Quick Ratio (Acid Test)
+        quickRatio: currentLiabilities !== 0 ? ((currentAssets - inventory) / currentLiabilities) : 0,
+        // Debt to Equity
+        debtToEquity: shareholderEquity !== 0 ? (totalDebt / shareholderEquity) : 0,
+        // Raw values for reference
+        netIncome,
+        totalAssets,
+        shareholderEquity,
+        currentAssets,
+        currentLiabilities,
+        totalDebt
+      };
+    } catch (error) {
+      console.error(`Error calculating advanced fundamentals for ${symbol}:`, error);
+      // Return zeros if calculation fails
+      return {
+        symbol,
+        roe: 0,
+        roa: 0,
+        currentRatio: 0,
+        quickRatio: 0,
+        debtToEquity: 0
+      };
+    }
+  }
+
+  /**
    * Get rate limit status for all providers
    */
   getRateLimitStatus() {
