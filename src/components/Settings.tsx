@@ -32,7 +32,8 @@ import {
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
-import { setTradingMode } from '../store/accountSlice';
+import { setTradingMode, fetchAccountInfo } from '../store/accountSlice';
+import { fetchPositions } from '../store/positionsSlice';
 import { TradingMode } from '../types';
 import { ThemeContext } from '../theme/ThemeContext';
 
@@ -98,12 +99,20 @@ function Settings() {
     if (newMode === 'live') {
       setConfirmDialogOpen(true);
     } else {
-      dispatch(setTradingMode(newMode));
+      // Switch to paper mode and refresh data
+      dispatch(setTradingMode(newMode)).then(() => {
+        dispatch(fetchAccountInfo());
+        dispatch(fetchPositions());
+      });
     }
   };
 
   const handleConfirmLiveMode = () => {
-    dispatch(setTradingMode('live'));
+    // Switch to live mode and refresh data
+    dispatch(setTradingMode('live')).then(() => {
+      dispatch(fetchAccountInfo());
+      dispatch(fetchPositions());
+    });
     setConfirmDialogOpen(false);
   };
 
