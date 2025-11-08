@@ -29,6 +29,7 @@ import {
   TrendingUp as ProfitIcon,
   TrendingDown as LossIcon,
   Assessment as ChartIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { ScreeningProfile } from '../types';
 
@@ -138,9 +139,31 @@ function Backtesting() {
       <Typography variant="h4" gutterBottom>
         Strategy Backtesting
       </Typography>
-      <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
         Test your screening profiles against historical data to evaluate performance
       </Typography>
+
+      {/* SIMULATED MODE WARNING */}
+      <Alert
+        severity="warning"
+        icon={<WarningIcon />}
+        sx={{
+          mb: 3,
+          backgroundColor: 'warning.light',
+          '& .MuiAlert-icon': {
+            fontSize: '28px',
+          },
+        }}
+      >
+        <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+          SIMULATED BACKTESTING MODE
+        </Typography>
+        <Typography variant="body2">
+          This backtesting engine uses simulated random data for demonstration purposes.
+          To backtest with real historical market data, you need a <strong>paid Alpha Vantage API key</strong> (Premium tier or higher).
+          Configure your API key in Settings to enable real historical data backtesting.
+        </Typography>
+      </Alert>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
