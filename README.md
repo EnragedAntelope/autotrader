@@ -389,6 +389,170 @@ If you continue to have problems:
 
 ---
 
+## 💰 Recommended API Pricing Tiers
+
+Choosing the right API tier depends on your trading style and scanning frequency. Here are our recommendations:
+
+### 🆓 Option 1: Budget-Conscious Starter (Free)
+
+**APIs:**
+```
+Alpaca: FREE Paper Trading (unlimited requests, 200/min live)
+Alpha Vantage: FREE (5 requests/min, 25/day)
+```
+
+**Monthly Cost: $0**
+
+**Best For:**
+- Learning the platform
+- Testing strategies before going live
+- Occasional scanning (1-3 times per day)
+
+**What You Can Do:**
+- Unlimited paper trading simulations
+- Scan ~25 stocks per day with fundamental analysis
+- Use "Fast Scan" template (Alpaca-only) for unlimited price/volume scans
+- Perfect for learning and strategy development
+
+**Limitations:**
+- Only 25 fundamental scans per day with Alpha Vantage
+- Must choose focused watchlists carefully
+
+**💡 Pro Tips to Maximize Free Tier:**
+1. **Use "Fast Scan" template** - Uses only Alpaca data (price, volume, % change), no Alpha Vantage calls
+2. **Focus on small watchlists** - Scan "Tech Giants" (15 stocks) instead of "All Major Stocks" (60 stocks)
+3. **Schedule strategically** - Scan once at market open + once before close = 50 stocks/day max
+4. **Prioritize quality** - Better to deeply analyze 20 good stocks than skim 200
+
+---
+
+### 💎 Option 2: Serious Trader - Best Value ($50/month) ⭐ RECOMMENDED
+
+**APIs:**
+```
+Alpaca: FREE Live Trading (200 requests/min)
+Alpha Vantage: Premium ($49.99/month - 75/min, 150/day)
+```
+
+**Monthly Cost: $50**
+
+**Best For:**
+- Active traders doing fundamental analysis
+- Multiple scans per day
+- Monitoring 50-150 stocks across multiple sectors
+
+**What You Can Do:**
+- Scan ALL 13 watchlists multiple times per day
+- 150 fundamental scans per day = scan your favorite 3 watchlists every hour
+- Run comprehensive value/growth/dividend screens
+- Monitor positions real-time with Alpaca's 200 req/min
+- Combine technical + fundamental analysis
+
+**Example Daily Usage:**
+- Morning: Scan all watchlists (60 stocks) for overnight opportunities
+- Midday: Rescan top 3 watchlists (45 stocks) for momentum changes
+- Before close: Final scan of active positions watchlist (20 stocks)
+- **Total: ~125 stocks/day** with room to spare
+
+**Why This is Best Value:**
+- Alpaca free tier (200/min) is plenty for trading execution
+- Alpha Vantage Premium unlocks serious fundamental analysis
+- $50/month is less than one successful trade covers
+- Perfect balance of cost vs capability
+
+---
+
+### 🚀 Option 3: Professional High-Frequency ($100+/month)
+
+**APIs:**
+```
+Alpaca: Paid Plans ($99/month - 10,000/min unlimited data)
+Alpha Vantage: Premium+ ($249.99/month - 600/day) OR Enterprise ($499.99/month - 1200/day)
+```
+
+**Monthly Cost: $99-$599**
+
+**Best For:**
+- Professional traders
+- Multiple strategies running simultaneously
+- High-frequency monitoring (scans every 5-15 minutes)
+- Large portfolios (100+ positions)
+
+**What You Can Do:**
+- Scan hundreds of stocks continuously throughout the day
+- Run 10+ different strategies simultaneously
+- Real-time monitoring of large watchlists
+- Institutional-grade data throughput
+
+**When You Need This:**
+- You're managing $50,000+ in positions
+- You need minute-by-minute monitoring
+- You run complex multi-factor strategies
+- Your trading profits justify the cost
+
+---
+
+### 📊 Quick Comparison Table
+
+| Tier | Monthly Cost | Daily Scans | Best Use Case | Recommended? |
+|------|--------------|-------------|---------------|--------------|
+| **Free** | $0 | 25 stocks/day | Learning, Testing | ✅ Beginners |
+| **Best Value** | $50 | 150 stocks/day | Active Trading | ⭐ **RECOMMENDED** |
+| **Professional** | $100-$600 | 600-1200/day | High-Frequency | 🎯 Pro Traders |
+
+---
+
+### 🎯 Our Recommendation: Start with Free, Upgrade to $50
+
+**Path to Success:**
+
+**Month 1-2: FREE TIER**
+- Learn the platform
+- Test strategies in paper trading
+- Use "Fast Scan" template for practice
+- Perfect your risk management
+
+**Month 3+: UPGRADE TO $50/MONTH**
+- Once you're profitable in paper trading
+- When you need fundamental analysis for 50+ stocks/day
+- Before switching to live trading
+- When you have proven strategies
+
+**Don't Upgrade to Pro Until:**
+- You're managing $50,000+ in capital
+- You need real-time monitoring of 100+ positions
+- Your monthly profits exceed $1,000
+- Free tier limitations are costing you opportunities
+
+---
+
+### 🔍 Understanding Your Scanning Needs
+
+**How Many Stocks Should You Scan?**
+
+The app comes with 13 pre-built watchlists:
+- All Major Stocks: 60 symbols (scan 2x/day = 120 API calls)
+- Tech Giants: 15 symbols (scan 8x/day = 120 API calls)
+- Dividend Aristocrats: 15 symbols (scan 8x/day = 120 API calls)
+- Sector-specific: 12-20 symbols each
+
+**Strategy Examples:**
+
+**Conservative (Free Tier - 25/day):**
+- Morning: Scan "Dividend Aristocrats" (15 stocks)
+- Evening: Scan "Value Stocks Custom" (10 stocks)
+
+**Moderate ($50/month - 150/day):**
+- Every hour: Scan "Tech Giants" (15 stocks) = 120/day
+- Plus daily: "All Major Stocks" (60 stocks) once = 180/day total
+- Leaves room for ad-hoc scans
+
+**Aggressive (Pro Tier - 600/day):**
+- Every 15 min: All watchlists (60 stocks × 26 scans/day) = 1,560/day
+- Requires Premium+ or Enterprise
+
+---
+
 ## Running the Application
 
 ### Development Mode
