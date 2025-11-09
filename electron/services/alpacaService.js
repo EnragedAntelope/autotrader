@@ -128,19 +128,55 @@ class AlpacaService {
 
   /**
    * Get latest bar data (OHLCV)
-   * Looks back up to 10 days to handle closed markets (weekends, holidays)
+   * Handles both paid (SIP) and free (IEX) tier subscriptions
+   * Looks back multiple bars to handle closed markets (weekends, holidays)
    */
   async getLatestBar(symbol) {
     try {
-      // Look back 10 days to ensure we get data even when markets are closed
-      const end = new Date();
-      const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+      // First, try the paid tier method (SIP with date range)
+      // This works best but requires paid subscription
+      try {
+        const end = new Date();
+        const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
 
+        const bars = await this.client.getBarsV2(symbol, {
+          start: start.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          end: end.toISOString().split('T')[0],
+          limit: 1,
+          timeframe: '1Day',
+        });
+
+        const barArray = [];
+        for await (let bar of bars) {
+          barArray.push(bar);
+        }
+
+        if (barArray.length > 0) {
+          const latestBar = barArray[0];
+          return {
+            symbol,
+            open: latestBar.OpenPrice,
+            high: latestBar.HighPrice,
+            low: latestBar.LowPrice,
+            close: latestBar.ClosePrice,
+            volume: latestBar.Volume,
+            timestamp: latestBar.Timestamp,
+          };
+        }
+      } catch (sipError) {
+        // If we get 403, user has free tier - fall through to IEX method
+        if (!sipError.message || !sipError.message.includes('403')) {
+          throw sipError; // Re-throw if not a subscription error
+        }
+        // Continue to free tier fallback below
+      }
+
+      // Free tier fallback: Use IEX feed with higher limit
+      // Get last 10 bars to ensure we have data even when markets closed
       const bars = await this.client.getBarsV2(symbol, {
-        start: start.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        end: end.toISOString().split('T')[0],
-        limit: 1,
+        limit: 10,
         timeframe: '1Day',
+        feed: 'iex', // Free tier IEX data
       });
 
       const barArray = [];
@@ -149,9 +185,10 @@ class AlpacaService {
       }
 
       if (barArray.length === 0) {
-        throw new Error(`No bar data found for ${symbol} in the last 10 days`);
+        throw new Error(`No bar data found for ${symbol} (tried both SIP and IEX feeds)`);
       }
 
+      // Return the most recent bar (first in array, sorted descending)
       const latestBar = barArray[0];
       return {
         symbol,
@@ -170,6 +207,7 @@ class AlpacaService {
 
   /**
    * Get historical bars
+   * Handles both paid (SIP) and free (IEX) tier subscriptions
    */
   async getHistoricalBars(symbol, options = {}) {
     try {
@@ -180,11 +218,42 @@ class AlpacaService {
         limit = 100,
       } = options;
 
+      // Try paid tier first (with date range)
+      try {
+        const bars = await this.client.getBarsV2(symbol, {
+          start,
+          end,
+          timeframe,
+          limit,
+        });
+
+        const barArray = [];
+        for await (let bar of bars) {
+          barArray.push({
+            timestamp: bar.Timestamp,
+            open: bar.OpenPrice,
+            high: bar.HighPrice,
+            low: bar.LowPrice,
+            close: bar.ClosePrice,
+            volume: bar.Volume,
+          });
+        }
+
+        if (barArray.length > 0) {
+          return barArray;
+        }
+      } catch (sipError) {
+        // If 403, fall through to IEX
+        if (!sipError.message || !sipError.message.includes('403')) {
+          throw sipError;
+        }
+      }
+
+      // Free tier fallback: Use IEX feed with limit only (no date range)
       const bars = await this.client.getBarsV2(symbol, {
-        start,
-        end,
         timeframe,
         limit,
+        feed: 'iex',
       });
 
       const barArray = [];
