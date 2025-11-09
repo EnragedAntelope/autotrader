@@ -411,7 +411,15 @@ function ScreenerBuilder() {
 
     try {
       const results = await window.electron.runScan(profileId);
-      setTestResults(results);
+
+      // Attach profile info to results for display
+      const profile = profiles.find((p) => p.id === profileId);
+      const enhancedResults = {
+        ...results,
+        profile: profile,
+      };
+
+      setTestResults(enhancedResults);
       setTestResultsOpen(true);
       setSuccess(`Scan completed! Found ${results.matches.length} matches`);
     } catch (err: any) {
@@ -419,6 +427,52 @@ function ScreenerBuilder() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatParameterValue = (paramName: string, value: any) => {
+    if (value === null || value === undefined) return 'N/A';
+
+    // Market cap formatting
+    if (paramName.toLowerCase().includes('marketcap')) {
+      if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+      if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+      if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+      return `$${value.toFixed(0)}`;
+    }
+
+    // Percentage formatting
+    if (paramName.toLowerCase().includes('percent') || paramName.toLowerCase().includes('yield') ||
+        paramName.toLowerCase().includes('change') || paramName === 'roe' || paramName === 'roa') {
+      return `${value.toFixed(2)}%`;
+    }
+
+    // Ratio formatting
+    if (paramName.toLowerCase().includes('ratio') || paramName === 'pe' || paramName === 'pb' ||
+        paramName === 'beta' || paramName.toLowerCase().includes('debt')) {
+      return value.toFixed(2);
+    }
+
+    // Price formatting
+    if (paramName.toLowerCase().includes('price')) {
+      return `$${value.toFixed(2)}`;
+    }
+
+    // Volume formatting
+    if (paramName.toLowerCase().includes('volume')) {
+      return value.toLocaleString();
+    }
+
+    // Default number formatting
+    if (typeof value === 'number') {
+      return value.toFixed(2);
+    }
+
+    return String(value);
+  };
+
+  const getParameterLabel = (paramName: string): string => {
+    const params = formData.asset_type === 'stock' ? STOCK_PARAMETERS : OPTION_PARAMETERS;
+    return params[paramName]?.label || paramName;
   };
 
   const renderParameterInput = (param: ParameterDefinition) => {
@@ -940,8 +994,9 @@ function ScreenerBuilder() {
       <Dialog
         open={testResultsOpen}
         onClose={() => setTestResultsOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
+        disableRestoreFocus
       >
         <DialogTitle>Scan Results</DialogTitle>
         <DialogContent>
@@ -950,22 +1005,243 @@ function ScreenerBuilder() {
               <Alert severity="success" sx={{ mb: 2 }}>
                 Found {testResults.matches.length} matches in {testResults.duration}ms
               </Alert>
-              <List>
-                {testResults.matches.slice(0, 10).map((match: any, index: number) => (
-                  <ListItem key={index}>
-                    <ListItemText
-                      primary={match.symbol}
-                      secondary={`Price: $${match.data?.price?.toFixed(2) || 'N/A'} | Volume: ${
-                        match.data?.volume?.toLocaleString() || 'N/A'
-                      }`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              {testResults.matches.length > 10 && (
-                <Typography variant="caption" color="textSecondary">
-                  ... and {testResults.matches.length - 10} more
-                </Typography>
+
+              {testResults.profile && Object.keys(testResults.profile.parameters || {}).length > 0 && (
+                <Paper sx={{ p: 2, mb: 2, bgcolor: 'info.light' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Screened Parameters:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {Object.entries(testResults.profile.parameters).map(([key, value]: [string, any]) => {
+                      if (value !== null && value !== undefined && value !== '') {
+                        return (
+                          <Chip
+                            key={key}
+                            label={`${getParameterLabel(key)}: ${value}`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </Box>
+                </Paper>
+              )}
+
+              {testResults.matches.length === 0 ? (
+                <Alert severity="info">
+                  No stocks matched your criteria. Try adjusting your parameters.
+                </Alert>
+              ) : (
+                <>
+                  {testResults.matches.slice(0, 20).map((match: any, index: number) => (
+                    <Paper key={index} sx={{ p: 2, mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {match.symbol}
+                      </Typography>
+
+                      <Divider sx={{ mb: 1 }} />
+
+                      <Grid container spacing={2}>
+                        {/* Basic Market Data */}
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Typography variant="caption" color="textSecondary">
+                            Price
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            {formatParameterValue('price', match.data?.price)}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Typography variant="caption" color="textSecondary">
+                            Volume
+                          </Typography>
+                          <Typography variant="body1">
+                            {formatParameterValue('volume', match.data?.volume)}
+                          </Typography>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Typography variant="caption" color="textSecondary">
+                            Day Change
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: (match.data?.dayChangePercent || 0) >= 0 ? 'success.main' : 'error.main',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {formatParameterValue('dayChangePercent', match.data?.dayChangePercent)}
+                          </Typography>
+                        </Grid>
+
+                        {/* Show matched parameters if available */}
+                        {match.data?.marketCap && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Market Cap
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('marketCap', match.data.marketCap)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.pe && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              P/E Ratio
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('pe', match.data.pe)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.pb && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              P/B Ratio
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('pb', match.data.pb)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.dividendYield !== undefined && match.data?.dividendYield !== null && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Dividend Yield
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('dividendYield', match.data.dividendYield)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.beta && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Beta
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('beta', match.data.beta)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.roe && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              ROE
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('roe', match.data.roe)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.roa && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              ROA
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('roa', match.data.roa)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.currentRatio && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Current Ratio
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('currentRatio', match.data.currentRatio)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.quickRatio && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Quick Ratio
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('quickRatio', match.data.quickRatio)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.debtToEquity !== undefined && match.data?.debtToEquity !== null && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Debt to Equity
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('debtToEquity', match.data.debtToEquity)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.sector && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              Sector
+                            </Typography>
+                            <Typography variant="body1">{match.data.sector}</Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.sma20 && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              SMA 20
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('price', match.data.sma20)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.sma50 && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              SMA 50
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('price', match.data.sma50)}
+                            </Typography>
+                          </Grid>
+                        )}
+
+                        {match.data?.rsi && (
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Typography variant="caption" color="textSecondary">
+                              RSI
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatParameterValue('rsi', match.data.rsi)}
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Paper>
+                  ))}
+
+                  {testResults.matches.length > 20 && (
+                    <Alert severity="info">
+                      Showing first 20 of {testResults.matches.length} matches. Check the Scan Results page
+                      for the complete list.
+                    </Alert>
+                  )}
+                </>
               )}
             </Box>
           )}
