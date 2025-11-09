@@ -63,12 +63,20 @@ class UpdateChecker {
     } catch (error) {
       console.error('Error checking for updates:', error.message);
 
+      // Provide helpful error messages
+      let errorMessage = error.message;
+      if (error.response && error.response.status === 404) {
+        errorMessage = 'No releases found on GitHub. This is normal for development - releases are only available in production builds.';
+      } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+        errorMessage = 'Unable to connect to GitHub. Check your internet connection.';
+      }
+
       // Return safe fallback
       return {
         updateAvailable: false,
         currentVersion: this.currentVersion,
         latestVersion: this.currentVersion,
-        error: error.message
+        error: errorMessage
       };
     }
   }

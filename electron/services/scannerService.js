@@ -654,13 +654,14 @@ class ScannerService {
         this.rateLimiter.executeRequest('alpaca', () => alpacaService.getLatestBar(symbol)),
       ]);
 
-      if (!quote || !bar) {
+      // Bar data is required, but quote can be null (when markets are closed)
+      if (!bar) {
         return null;
       }
 
       const stockData = {
         symbol,
-        price: quote.price || bar.close, // Fallback to bar close if quote price unavailable
+        price: (quote && quote.price) || bar.close, // Use quote price if available, otherwise use bar close
         volume: bar.volume,
         open: bar.open,
         high: bar.high,

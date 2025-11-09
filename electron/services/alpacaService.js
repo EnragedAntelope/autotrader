@@ -107,6 +107,7 @@ class AlpacaService {
 
   /**
    * Get latest quote for a symbol
+   * Returns null when markets are closed instead of throwing (scanner will use bar close price)
    */
   async getQuote(symbol) {
     try {
@@ -118,17 +119,26 @@ class AlpacaService {
         timestamp: quote.t,
       };
     } catch (error) {
-      console.error(`Error getting quote for ${symbol}:`, error);
-      throw error;
+      // When markets are closed, trade data may not be available
+      // Return null so scanner can fall back to bar close price
+      console.log(`No recent trade data for ${symbol} (market may be closed)`);
+      return null;
     }
   }
 
   /**
    * Get latest bar data (OHLCV)
+   * Looks back up to 10 days to handle closed markets (weekends, holidays)
    */
   async getLatestBar(symbol) {
     try {
+      // Look back 10 days to ensure we get data even when markets are closed
+      const end = new Date();
+      const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+
       const bars = await this.client.getBarsV2(symbol, {
+        start: start.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        end: end.toISOString().split('T')[0],
         limit: 1,
         timeframe: '1Day',
       });
@@ -139,7 +149,7 @@ class AlpacaService {
       }
 
       if (barArray.length === 0) {
-        throw new Error(`No bar data found for ${symbol}`);
+        throw new Error(`No bar data found for ${symbol} in the last 10 days`);
       }
 
       const latestBar = barArray[0];
