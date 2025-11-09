@@ -79,6 +79,9 @@ function ScreenerBuilder() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [apiEstimateDialogOpen, setApiEstimateDialogOpen] = useState(false);
+  const [pendingTestProfileId, setPendingTestProfileId] = useState<number | null>(null);
+  const [apiEstimate, setApiEstimate] = useState<{ alpaca: number; alphaVantage: number } | null>(null);
 
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
@@ -315,6 +318,93 @@ function ScreenerBuilder() {
     }
   };
 
+  const estimateApiCalls = async (profileId: number) => {
+    try {
+      const profile = profiles.find((p) => p.id === profileId);
+      if (!profile) return { alpaca: 0, alphaVantage: 0 };
+
+      // Find the watchlist to count symbols
+      const watchlist = watchlists.find((w) => w.id === profile.watchlist_id);
+      let symbolCount = 0;
+
+      if (watchlist) {
+        // Check if this is the special ALL_STOCKS watchlist
+        if (watchlist.name.includes('ALL US STOCKS') || watchlist.name.includes('Universe Scanner')) {
+          symbolCount = 10000; // Approximate count for all US stocks
+        } else {
+          // Get actual symbol count from watchlist
+          const symbols = await window.electron.getWatchlistSymbols(watchlist.id);
+          symbolCount = symbols.length;
+        }
+      } else {
+        // Default watchlist
+        symbolCount = 60; // "All Major Stocks" default
+      }
+
+      // Alpaca calls: ~2 per symbol (quote + bar data)
+      const alpacaCalls = symbolCount * 2;
+
+      // Alpha Vantage calls depend on parameters used
+      let alphaVantageCalls = 0;
+      const params = profile.parameters || {};
+
+      // Check if any basic fundamental parameters are used (OVERVIEW endpoint)
+      const basicFundamentalParams = [
+        'minMarketCap', 'maxMarketCap', 'minPERatio', 'maxPERatio',
+        'minPBRatio', 'maxPBRatio', 'minDividendYield', 'maxDividendYield',
+        'minBeta', 'maxBeta', 'sector', 'country'
+      ];
+
+      const usesBasicFundamentals = basicFundamentalParams.some(param =>
+        params[param] !== undefined && params[param] !== null && params[param] !== ''
+      );
+
+      if (usesBasicFundamentals) {
+        alphaVantageCalls += symbolCount; // 1 OVERVIEW call per symbol
+      }
+
+      // Check if any advanced fundamental parameters are used (INCOME_STATEMENT + BALANCE_SHEET)
+      const advancedFundamentalParams = [
+        'minROE', 'minROA', 'minCurrentRatio', 'maxCurrentRatio',
+        'minQuickRatio', 'maxDebtToEquity'
+      ];
+
+      const usesAdvancedFundamentals = advancedFundamentalParams.some(param =>
+        params[param] !== undefined && params[param] !== null && params[param] !== ''
+      );
+
+      if (usesAdvancedFundamentals) {
+        alphaVantageCalls += symbolCount * 2; // 2 additional calls per symbol (INCOME_STATEMENT + BALANCE_SHEET)
+      }
+
+      return { alpaca: alpacaCalls, alphaVantage: alphaVantageCalls };
+    } catch (err) {
+      console.error('Error estimating API calls:', err);
+      return { alpaca: 0, alphaVantage: 0 };
+    }
+  };
+
+  const handleTestClick = async (profileId: number) => {
+    // Estimate API calls and show confirmation dialog
+    const estimate = await estimateApiCalls(profileId);
+    setApiEstimate(estimate);
+    setPendingTestProfileId(profileId);
+    setApiEstimateDialogOpen(true);
+  };
+
+  const handleConfirmTest = () => {
+    if (pendingTestProfileId !== null) {
+      setApiEstimateDialogOpen(false);
+      handleTest(pendingTestProfileId);
+    }
+  };
+
+  const handleCancelTest = () => {
+    setApiEstimateDialogOpen(false);
+    setPendingTestProfileId(null);
+    setApiEstimate(null);
+  };
+
   const handleTest = async (profileId: number) => {
     setLoading(true);
     setError(null);
@@ -542,7 +632,7 @@ function ScreenerBuilder() {
                   )}
                 </CardContent>
                 <CardActions>
-                  <Button size="small" startIcon={<PlayIcon />} onClick={() => handleTest(profile.id)}>
+                  <Button size="small" startIcon={<PlayIcon />} onClick={() => handleTestClick(profile.id)}>
                     Run
                   </Button>
                   <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenDialog(profile)}>
@@ -775,6 +865,73 @@ function ScreenerBuilder() {
           <Button onClick={handleCloseDialog}>Cancel</Button>
           <Button onClick={handleSave} variant="contained" color="primary" startIcon={<SaveIcon />}>
             {editingProfile ? 'Update Profile' : 'Create Profile'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* API Call Estimate Dialog */}
+      <Dialog
+        open={apiEstimateDialogOpen}
+        onClose={handleCancelTest}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>API Call Estimate</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom>
+            Running this scan will use approximately:
+          </Typography>
+
+          {apiEstimate && (
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Paper sx={{ p: 2, mb: 2, bgcolor: 'primary.light' }}>
+                <Typography variant="h6" color="primary.contrastText">
+                  Alpaca API: ~{apiEstimate.alpaca.toLocaleString()} calls
+                </Typography>
+                <Typography variant="caption" color="primary.contrastText">
+                  For quotes, bars, and asset data
+                </Typography>
+              </Paper>
+
+              <Paper sx={{ p: 2, bgcolor: apiEstimate.alphaVantage > 0 ? 'warning.light' : 'success.light' }}>
+                <Typography variant="h6" color={apiEstimate.alphaVantage > 0 ? 'warning.contrastText' : 'success.contrastText'}>
+                  Alpha Vantage API: ~{apiEstimate.alphaVantage.toLocaleString()} calls
+                </Typography>
+                <Typography variant="caption" color={apiEstimate.alphaVantage > 0 ? 'warning.contrastText' : 'success.contrastText'}>
+                  {apiEstimate.alphaVantage > 0
+                    ? 'For fundamental data (P/E, ROE, etc.)'
+                    : 'No fundamental parameters selected'}
+                </Typography>
+              </Paper>
+            </Box>
+          )}
+
+          {apiEstimate && apiEstimate.alphaVantage > 25 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Note:</strong> This scan will exceed the free tier Alpha Vantage limit (25 calls/day).
+                Make sure you have a Premium API key, or the scan may fail partway through.
+              </Typography>
+            </Alert>
+          )}
+
+          {apiEstimate && apiEstimate.alpaca > 200 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Tip:</strong> This scan will use {apiEstimate.alpaca} Alpaca calls.
+                Free tier limit is 200/minute. Consider using a paid plan for large scans.
+              </Typography>
+            </Alert>
+          )}
+
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+            These are estimates. Actual usage may vary based on caching and market conditions.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelTest}>Cancel</Button>
+          <Button onClick={handleConfirmTest} variant="contained" color="primary">
+            Proceed with Scan
           </Button>
         </DialogActions>
       </Dialog>

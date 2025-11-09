@@ -110,14 +110,7 @@ function initializeDatabase() {
 
 function initializeDefaultWatchlists() {
   try {
-    // Check if any watchlists already exist
-    const existingWatchlists = db.prepare('SELECT COUNT(*) as count FROM watchlists').get();
-    if (existingWatchlists.count > 0) {
-      console.log('Watchlists already initialized, skipping...');
-      return;
-    }
-
-    console.log('Creating default watchlists...');
+    console.log('Checking for missing default watchlists...');
 
     // Default watchlist data
     const watchlists = [
@@ -227,11 +220,23 @@ function initializeDefaultWatchlists() {
       }
     ];
 
-    // Insert watchlists and symbols
+    // Insert watchlists and symbols (only if they don't already exist)
+    const checkWatchlist = db.prepare('SELECT id FROM watchlists WHERE name = ?');
     const insertWatchlist = db.prepare('INSERT INTO watchlists (name, description, is_default) VALUES (?, ?, ?)');
     const insertSymbol = db.prepare('INSERT INTO watchlist_symbols (watchlist_id, symbol) VALUES (?, ?)');
 
+    let addedCount = 0;
+    let skippedCount = 0;
+
     for (const watchlist of watchlists) {
+      // Check if watchlist already exists
+      const existing = checkWatchlist.get(watchlist.name);
+      if (existing) {
+        skippedCount++;
+        continue;
+      }
+
+      // Insert new watchlist
       const result = insertWatchlist.run(watchlist.name, watchlist.description, watchlist.is_default);
       const watchlistId = result.lastInsertRowid;
 
@@ -240,16 +245,24 @@ function initializeDefaultWatchlists() {
         // Store the special ID as a special symbol marker
         insertSymbol.run(watchlistId, `__SPECIAL__${watchlist.special_id}__`);
         console.log(`✓ Created special watchlist: ${watchlist.name} (${watchlist.special_id})`);
+        addedCount++;
       } else if (watchlist.symbols) {
         // Insert symbols for regular watchlists
         for (const symbol of watchlist.symbols) {
           insertSymbol.run(watchlistId, symbol);
         }
         console.log(`✓ Created watchlist: ${watchlist.name} (${watchlist.symbols.length} symbols)`);
+        addedCount++;
       }
     }
 
-    console.log('Default watchlists initialized successfully');
+    if (addedCount > 0) {
+      console.log(`✓ Added ${addedCount} new default watchlist(s)`);
+    }
+    if (skippedCount > 0) {
+      console.log(`  Skipped ${skippedCount} existing watchlist(s)`);
+    }
+    console.log('Default watchlists check complete');
   } catch (error) {
     console.error('Error initializing default watchlists:', error);
   }

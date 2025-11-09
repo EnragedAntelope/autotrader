@@ -29,6 +29,9 @@ import {
   Refresh as RefreshIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  SystemUpdate as UpdateIcon,
+  CheckCircle as CheckIcon,
+  NewReleases as NewReleaseIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
@@ -69,6 +72,10 @@ function Settings() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Update checker state
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<any>(null);
 
   // Theme toggle handler with notification
   const handleThemeToggle = () => {
@@ -123,6 +130,30 @@ function Settings() {
 
   const handleSettingChange = (key: keyof AppSettings, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const checkForUpdates = async () => {
+    setCheckingUpdate(true);
+    setError(null);
+    try {
+      const result = await window.electron.checkForUpdates();
+      setUpdateInfo(result);
+
+      if (result.error) {
+        setError(`Update check failed: ${result.error}`);
+      } else if (result.updateAvailable) {
+        setSuccess(`New version ${result.latestVersion} is available!`);
+      } else {
+        setSuccess('You are running the latest version');
+      }
+
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      console.error('Error checking for updates:', err);
+      setError(`Failed to check for updates: ${err.message}`);
+    } finally {
+      setCheckingUpdate(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -383,6 +414,80 @@ function Settings() {
             </Typography>
           </Grid>
         </Grid>
+      </Paper>
+
+      {/* Application Updates */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Application Updates
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Check for new versions of the Alpaca Trading Scanner
+        </Typography>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={checkingUpdate ? <RefreshIcon className="spin" /> : <UpdateIcon />}
+            onClick={checkForUpdates}
+            disabled={checkingUpdate}
+          >
+            {checkingUpdate ? 'Checking...' : 'Check for Updates'}
+          </Button>
+
+          {updateInfo && !updateInfo.error && (
+            <Chip
+              icon={updateInfo.updateAvailable ? <NewReleaseIcon /> : <CheckIcon />}
+              label={
+                updateInfo.updateAvailable
+                  ? `v${updateInfo.latestVersion} available`
+                  : `v${updateInfo.currentVersion} (latest)`
+              }
+              color={updateInfo.updateAvailable ? 'warning' : 'success'}
+            />
+          )}
+        </Box>
+
+        {updateInfo && updateInfo.updateAvailable && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              New version available: v{updateInfo.latestVersion}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Current version: v{updateInfo.currentVersion}
+            </Typography>
+            {updateInfo.releaseNotes && (
+              <Typography variant="caption" component="div" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
+                {updateInfo.releaseNotes.length > 300
+                  ? updateInfo.releaseNotes.substring(0, 300) + '...'
+                  : updateInfo.releaseNotes}
+              </Typography>
+            )}
+            <Button
+              variant="outlined"
+              size="small"
+              href={updateInfo.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ mt: 1 }}
+            >
+              View Release & Download
+            </Button>
+          </Alert>
+        )}
+
+        {updateInfo && !updateInfo.updateAvailable && !updateInfo.error && (
+          <Alert severity="success">
+            <Typography variant="body2">
+              You are running the latest version (v{updateInfo.currentVersion})
+            </Typography>
+            {updateInfo.publishedAt && (
+              <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 0.5 }}>
+                Released: {new Date(updateInfo.publishedAt).toLocaleDateString()}
+              </Typography>
+            )}
+          </Alert>
+        )}
       </Paper>
 
       {/* API Configuration */}
