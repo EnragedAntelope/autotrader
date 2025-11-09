@@ -28,6 +28,7 @@ import {
   ShowChart as PositionsIcon,
   Assessment as BacktestIcon,
   List as ListIcon,
+  Help as HelpIcon,
 } from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from './store';
@@ -43,10 +44,11 @@ import RiskManagement from './components/RiskManagement';
 import Settings from './components/Settings';
 import NotificationCenter from './components/NotificationCenter';
 import WatchlistManager from './components/WatchlistManager';
+import Help from './components/Help';
 
 const drawerWidth = 240;
 
-type View = 'dashboard' | 'screener' | 'watchlists' | 'scheduler' | 'results' | 'trades' | 'positions' | 'backtest' | 'risk' | 'settings';
+type View = 'dashboard' | 'screener' | 'watchlists' | 'scheduler' | 'results' | 'trades' | 'positions' | 'backtest' | 'risk' | 'settings' | 'help';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -80,6 +82,7 @@ function App() {
     { id: 'backtest' as View, label: 'Backtesting', icon: <BacktestIcon /> },
     { id: 'risk' as View, label: 'Risk Management', icon: <AccountIcon /> },
     { id: 'settings' as View, label: 'Settings', icon: <SettingsIcon /> },
+    { id: 'help' as View, label: 'Help & Tips', icon: <HelpIcon /> },
   ];
 
   const handleMenuClick = (view: View) => {
@@ -109,6 +112,8 @@ function App() {
         return <RiskManagement />;
       case 'settings':
         return <Settings />;
+      case 'help':
+        return <Help />;
       default:
         return <Dashboard />;
     }
