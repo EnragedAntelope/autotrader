@@ -135,6 +135,7 @@ function Settings() {
   const checkForUpdates = async () => {
     setCheckingUpdate(true);
     setError(null);
+    setSuccess(null);
     try {
       const result = await window.electron.checkForUpdates();
       setUpdateInfo(result);
@@ -142,12 +143,12 @@ function Settings() {
       if (result.error) {
         setError(`Update check failed: ${result.error}`);
       } else if (result.updateAvailable) {
-        setSuccess(`New version ${result.latestVersion} is available!`);
+        setSuccess(`🎉 New version ${result.latestVersion} is available! See details below.`);
+        setTimeout(() => setSuccess(null), 8000);
       } else {
-        setSuccess('You are running the latest version');
+        setSuccess(`✅ You're up to date! Running version ${result.currentVersion}`);
+        setTimeout(() => setSuccess(null), 6000);
       }
-
-      setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
       console.error('Error checking for updates:', err);
       setError(`Failed to check for updates: ${err.message}`);
@@ -449,20 +450,49 @@ function Settings() {
         </Box>
 
         {updateInfo && updateInfo.updateAvailable && (
-          <Alert severity="info" sx={{ mb: 2 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-              New version available: v{updateInfo.latestVersion}
+              🎉 New version available: v{updateInfo.latestVersion}
             </Typography>
             <Typography variant="body2" sx={{ mb: 1 }}>
               Current version: v{updateInfo.currentVersion}
             </Typography>
             {updateInfo.releaseNotes && (
-              <Typography variant="caption" component="div" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
+              <Typography variant="caption" component="div" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
                 {updateInfo.releaseNotes.length > 300
                   ? updateInfo.releaseNotes.substring(0, 300) + '...'
                   : updateInfo.releaseNotes}
               </Typography>
             )}
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              How to update (Development Mode):
+            </Typography>
+            <Box component="ol" sx={{ pl: 2, mb: 2 }}>
+              <li>
+                <Typography variant="body2">
+                  Open terminal in your app directory
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="body2">
+                  Run: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 6px', borderRadius: '3px' }}>git pull origin main</code>
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="body2">
+                  Run: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 6px', borderRadius: '3px' }}>npm install</code> (if dependencies changed)
+                </Typography>
+              </li>
+              <li>
+                <Typography variant="body2">
+                  Restart the application
+                </Typography>
+              </li>
+            </Box>
+
             <Button
               variant="outlined"
               size="small"
@@ -471,15 +501,18 @@ function Settings() {
               rel="noopener noreferrer"
               sx={{ mt: 1 }}
             >
-              View Release & Download
+              View Full Release Notes on GitHub
             </Button>
           </Alert>
         )}
 
         {updateInfo && !updateInfo.updateAvailable && !updateInfo.error && (
           <Alert severity="success">
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              ✅ You're up to date!
+            </Typography>
             <Typography variant="body2">
-              You are running the latest version (v{updateInfo.currentVersion})
+              Running the latest version: v{updateInfo.currentVersion}
             </Typography>
             {updateInfo.publishedAt && (
               <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 0.5 }}>
