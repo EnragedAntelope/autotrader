@@ -215,9 +215,9 @@ class AlpacaService {
         const snapshot = await this.client.getSnapshot(symbol);
         console.log(`  Snapshot result:`, snapshot ? 'exists' : 'null', snapshot ? `Keys: ${Object.keys(snapshot).join(', ')}` : 'n/a');
 
-        if (snapshot && snapshot.dailyBar) {
+        if (snapshot && snapshot.DailyBar) {
           console.log(`✓ Using snapshot daily bar for ${symbol}`);
-          const dailyBar = snapshot.dailyBar;
+          const dailyBar = snapshot.DailyBar;
           return {
             symbol,
             open: dailyBar.OpenPrice || dailyBar.o,
@@ -227,9 +227,9 @@ class AlpacaService {
             volume: dailyBar.Volume || dailyBar.v,
             timestamp: dailyBar.Timestamp || dailyBar.t,
           };
-        } else if (snapshot && snapshot.prevDailyBar) {
+        } else if (snapshot && snapshot.PrevDailyBar) {
           console.log(`✓ Using snapshot PREVIOUS daily bar for ${symbol}`);
-          const prevBar = snapshot.prevDailyBar;
+          const prevBar = snapshot.PrevDailyBar;
           return {
             symbol,
             open: prevBar.OpenPrice || prevBar.o,
