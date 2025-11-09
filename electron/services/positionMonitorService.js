@@ -94,15 +94,31 @@ class PositionMonitorService {
    */
   async checkPosition(position) {
     try {
-      // Get current market price
+      // Get current market price - try quote first, fall back to latest bar
       const quote = await AlpacaService.getQuote(position.symbol);
+      let currentPrice = null;
 
-      if (!quote || !quote.ap) {
-        console.warn(`No quote data available for ${position.symbol}`);
+      if (quote && quote.price) {
+        // Use live quote price when markets are open
+        currentPrice = quote.price;
+      } else {
+        // Markets closed - fall back to latest bar close price
+        console.log(`Markets closed, using latest bar price for ${position.symbol}`);
+        try {
+          const bar = await AlpacaService.getLatestBar(position.symbol);
+          if (bar && bar.close) {
+            currentPrice = bar.close;
+          }
+        } catch (barError) {
+          console.warn(`Could not get bar data for ${position.symbol}:`, barError.message);
+        }
+      }
+
+      if (!currentPrice) {
+        console.warn(`No price data available for ${position.symbol} - skipping check`);
         return;
       }
 
-      const currentPrice = quote.ap; // Ask price
       const avgCost = position.avg_cost;
 
       // Calculate current P/L
