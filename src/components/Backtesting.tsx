@@ -143,25 +143,26 @@ function Backtesting() {
         Test your screening profiles against historical data to evaluate performance
       </Typography>
 
-      {/* SIMULATED MODE WARNING */}
+      {/* DATA SOURCE WARNING */}
       <Alert
-        severity="warning"
+        severity={process.env.ALPHA_VANTAGE_API_KEY ? 'info' : 'warning'}
         icon={<WarningIcon />}
         sx={{
           mb: 3,
-          backgroundColor: 'warning.light',
           '& .MuiAlert-icon': {
             fontSize: '28px',
           },
         }}
       >
         <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-          SIMULATED BACKTESTING MODE
+          {process.env.ALPHA_VANTAGE_API_KEY
+            ? 'REAL DATA BACKTESTING (Alpha Vantage)'
+            : 'SIMULATED DATA WARNING'}
         </Typography>
         <Typography variant="body2">
-          This backtesting engine uses simulated random data for demonstration purposes.
-          To backtest with real historical market data, you need a <strong>paid Alpha Vantage API key</strong> (Premium tier or higher).
-          Configure your API key in Settings to enable real historical data backtesting.
+          {process.env.ALPHA_VANTAGE_API_KEY
+            ? 'This backtesting engine will use real historical price data from Alpha Vantage. Note: This will consume API calls (approximately 5-10 calls per backtest run).'
+            : 'Without an Alpha Vantage API key configured, backtesting uses simulated random data for demonstration only. Results are NOT indicative of actual historical performance. Configure your Alpha Vantage API key in Settings (.env file) to enable real historical data backtesting.'}
         </Typography>
       </Alert>
 
@@ -259,6 +260,17 @@ function Backtesting() {
       {/* Results */}
       {results && (
         <>
+          {/* Data Source Indicator */}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h6">Backtest Results</Typography>
+            <Chip
+              label={results.dataSource === 'real' ? 'REAL DATA' : 'SIMULATED DATA'}
+              color={results.dataSource === 'real' ? 'success' : 'warning'}
+              size="small"
+              sx={{ fontWeight: 'bold' }}
+            />
+          </Box>
+
           {/* Summary Cards */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6} md={3}>

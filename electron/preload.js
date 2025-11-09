@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('electron', {
   runBacktest: (profileId, startDate, endDate, initialCapital, positionSize) =>
     ipcRenderer.invoke('run-backtest', profileId, startDate, endDate, initialCapital, positionSize),
 
+  // Update Checker
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+
   // Watchlist Management
   getWatchlists: () => ipcRenderer.invoke('get-watchlists'),
   getWatchlist: (id) => ipcRenderer.invoke('get-watchlist', id),
