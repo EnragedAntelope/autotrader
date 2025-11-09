@@ -176,6 +176,7 @@ class AlpacaService {
 
       // Approach 1: Try IEX with just limit (no date range)
       try {
+        console.log(`  Trying IEX bars with limit for ${symbol}...`);
         const iexBars = await this.client.getBarsV2(symbol, {
           limit: 10,
           timeframe: '1Day',
@@ -186,6 +187,8 @@ class AlpacaService {
         for await (let bar of iexBars) {
           iexBarArray.push(bar);
         }
+
+        console.log(`  IEX bars result: ${iexBarArray.length} bars for ${symbol}`);
 
         if (iexBarArray.length > 0) {
           console.log(`✓ IEX feed (limit-only) returned ${iexBarArray.length} bars for ${symbol}`);
@@ -199,28 +202,48 @@ class AlpacaService {
             volume: latestBar.Volume,
             timestamp: latestBar.Timestamp,
           };
+        } else {
+          console.log(`  IEX returned 0 bars for ${symbol} (markets may be closed and IEX has no historical lookback)`);
         }
       } catch (iexError) {
-        console.log(`IEX limit-only failed: ${iexError.message}`);
+        console.log(`  IEX limit-only failed for ${symbol}: ${iexError.message}`);
       }
 
       // Approach 2: Try snapshot API (free tier)
       try {
+        console.log(`  Trying snapshot API for ${symbol}...`);
         const snapshot = await this.client.getSnapshot(symbol);
+        console.log(`  Snapshot result:`, snapshot ? 'exists' : 'null', snapshot ? `Keys: ${Object.keys(snapshot).join(', ')}` : 'n/a');
+
         if (snapshot && snapshot.dailyBar) {
           console.log(`✓ Using snapshot daily bar for ${symbol}`);
+          const dailyBar = snapshot.dailyBar;
           return {
             symbol,
-            open: snapshot.dailyBar.OpenPrice || snapshot.dailyBar.o,
-            high: snapshot.dailyBar.HighPrice || snapshot.dailyBar.h,
-            low: snapshot.dailyBar.LowPrice || snapshot.dailyBar.l,
-            close: snapshot.dailyBar.ClosePrice || snapshot.dailyBar.c,
-            volume: snapshot.dailyBar.Volume || snapshot.dailyBar.v,
-            timestamp: snapshot.dailyBar.Timestamp || snapshot.dailyBar.t,
+            open: dailyBar.OpenPrice || dailyBar.o,
+            high: dailyBar.HighPrice || dailyBar.h,
+            low: dailyBar.LowPrice || dailyBar.l,
+            close: dailyBar.ClosePrice || dailyBar.c,
+            volume: dailyBar.Volume || dailyBar.v,
+            timestamp: dailyBar.Timestamp || dailyBar.t,
           };
+        } else if (snapshot && snapshot.prevDailyBar) {
+          console.log(`✓ Using snapshot PREVIOUS daily bar for ${symbol}`);
+          const prevBar = snapshot.prevDailyBar;
+          return {
+            symbol,
+            open: prevBar.OpenPrice || prevBar.o,
+            high: prevBar.HighPrice || prevBar.h,
+            low: prevBar.LowPrice || prevBar.l,
+            close: prevBar.ClosePrice || prevBar.c,
+            volume: prevBar.Volume || prevBar.v,
+            timestamp: prevBar.Timestamp || prevBar.t,
+          };
+        } else {
+          console.log(`  Snapshot exists but no daily bar data for ${symbol}`);
         }
       } catch (snapshotError) {
-        console.log(`Snapshot failed: ${snapshotError.message}`);
+        console.log(`  Snapshot failed for ${symbol}: ${snapshotError.message}`);
       }
 
       // If all approaches failed
