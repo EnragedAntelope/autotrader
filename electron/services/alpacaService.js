@@ -171,25 +171,34 @@ class AlpacaService {
         // Continue to free tier fallback below
       }
 
-      // Free tier fallback: Use IEX feed with higher limit
-      // Get last 10 bars to ensure we have data even when markets closed
-      const bars = await this.client.getBarsV2(symbol, {
+      // Free tier fallback: Use IEX feed with date range
+      // IEX feed allows date ranges on free tier
+      console.log(`Free tier detected for ${symbol}, using IEX feed...`);
+
+      const end = new Date();
+      const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+
+      const iexBars = await this.client.getBarsV2(symbol, {
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0],
         limit: 10,
         timeframe: '1Day',
-        feed: 'iex', // Free tier IEX data
+        feed: 'iex', // Explicitly request IEX feed (free tier)
       });
 
-      const barArray = [];
-      for await (let bar of bars) {
-        barArray.push(bar);
+      const iexBarArray = [];
+      for await (let bar of iexBars) {
+        iexBarArray.push(bar);
       }
 
-      if (barArray.length === 0) {
+      console.log(`IEX feed returned ${iexBarArray.length} bars for ${symbol}`);
+
+      if (iexBarArray.length === 0) {
         throw new Error(`No bar data found for ${symbol} (tried both SIP and IEX feeds)`);
       }
 
       // Return the most recent bar (first in array, sorted descending)
-      const latestBar = barArray[0];
+      const latestBar = iexBarArray[0];
       return {
         symbol,
         open: latestBar.OpenPrice,
