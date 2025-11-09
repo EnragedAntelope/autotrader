@@ -109,17 +109,21 @@ function Help() {
             </Typography>
 
             <Box sx={{ pl: 2, mb: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <Chip label="SIMULATED" color="warning" size="small" sx={{ mr: 1 }} />
-                <strong>Without Alpha Vantage API key:</strong> Uses random data (Math.random()) for demonstration only.
-                Results are <strong>NOT indicative of real performance</strong>.
-              </Typography>
+                <Typography variant="body2" component="span">
+                  <strong>Without Alpha Vantage API key:</strong> Uses random data (Math.random()) for demonstration only.
+                  Results are <strong>NOT indicative of real performance</strong>.
+                </Typography>
+              </Box>
 
-              <Typography variant="body2">
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Chip label="REAL DATA" color="success" size="small" sx={{ mr: 1 }} />
-                <strong>With Alpha Vantage API key:</strong> Uses actual historical OHLCV data (20+ years available).
-                Results reflect real market performance.
-              </Typography>
+                <Typography variant="body2" component="span">
+                  <strong>With Alpha Vantage API key:</strong> Uses actual historical OHLCV data (20+ years available).
+                  Results reflect real market performance.
+                </Typography>
+              </Box>
             </Box>
 
             <Alert severity="info" sx={{ mt: 2 }}>
