@@ -40,6 +40,7 @@ interface BacktestResults {
   initialCapital: number;
   finalCapital: number;
   trades: any[];
+  dataSource?: 'real' | 'simulated';
   metrics: {
     totalTrades: number;
     winningTrades: number;
@@ -67,9 +68,11 @@ function Backtesting() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<BacktestResults | null>(null);
+  const [hasAlphaVantageKey, setHasAlphaVantageKey] = useState<boolean>(false);
 
   useEffect(() => {
     loadProfiles();
+    checkAlphaVantageStatus();
 
     // Set default dates (last 6 months)
     const end = new Date();
@@ -86,6 +89,15 @@ function Backtesting() {
       setProfiles(profileList);
     } catch (err: any) {
       setError(`Failed to load profiles: ${err.message}`);
+    }
+  };
+
+  const checkAlphaVantageStatus = async () => {
+    try {
+      const setting = await window.electron.getAppSetting('ALPHA_VANTAGE_API_KEY');
+      setHasAlphaVantageKey(!!setting && setting !== '');
+    } catch (err) {
+      setHasAlphaVantageKey(false);
     }
   };
 
@@ -145,7 +157,7 @@ function Backtesting() {
 
       {/* DATA SOURCE WARNING */}
       <Alert
-        severity={process.env.ALPHA_VANTAGE_API_KEY ? 'info' : 'warning'}
+        severity={hasAlphaVantageKey ? 'info' : 'warning'}
         icon={<WarningIcon />}
         sx={{
           mb: 3,
@@ -155,12 +167,12 @@ function Backtesting() {
         }}
       >
         <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-          {process.env.ALPHA_VANTAGE_API_KEY
+          {hasAlphaVantageKey
             ? 'REAL DATA BACKTESTING (Alpha Vantage)'
             : 'SIMULATED DATA WARNING'}
         </Typography>
         <Typography variant="body2">
-          {process.env.ALPHA_VANTAGE_API_KEY
+          {hasAlphaVantageKey
             ? 'This backtesting engine will use real historical price data from Alpha Vantage. Note: This will consume API calls (approximately 5-10 calls per backtest run).'
             : 'Without an Alpha Vantage API key configured, backtesting uses simulated random data for demonstration only. Results are NOT indicative of actual historical performance. Configure your Alpha Vantage API key in Settings (.env file) to enable real historical data backtesting.'}
         </Typography>
