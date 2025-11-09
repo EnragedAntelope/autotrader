@@ -171,43 +171,60 @@ class AlpacaService {
         // Continue to free tier fallback below
       }
 
-      // Free tier fallback: Use IEX feed with date range
-      // IEX feed allows date ranges on free tier
-      console.log(`Free tier detected for ${symbol}, using IEX feed...`);
+      // Free tier fallback: Try multiple approaches
+      console.log(`Free tier detected for ${symbol}, trying IEX approaches...`);
 
-      const end = new Date();
-      const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+      // Approach 1: Try IEX with just limit (no date range)
+      try {
+        const iexBars = await this.client.getBarsV2(symbol, {
+          limit: 10,
+          timeframe: '1Day',
+          feed: 'iex',
+        });
 
-      const iexBars = await this.client.getBarsV2(symbol, {
-        start: start.toISOString().split('T')[0],
-        end: end.toISOString().split('T')[0],
-        limit: 10,
-        timeframe: '1Day',
-        feed: 'iex', // Explicitly request IEX feed (free tier)
-      });
+        const iexBarArray = [];
+        for await (let bar of iexBars) {
+          iexBarArray.push(bar);
+        }
 
-      const iexBarArray = [];
-      for await (let bar of iexBars) {
-        iexBarArray.push(bar);
+        if (iexBarArray.length > 0) {
+          console.log(`✓ IEX feed (limit-only) returned ${iexBarArray.length} bars for ${symbol}`);
+          const latestBar = iexBarArray[0];
+          return {
+            symbol,
+            open: latestBar.OpenPrice,
+            high: latestBar.HighPrice,
+            low: latestBar.LowPrice,
+            close: latestBar.ClosePrice,
+            volume: latestBar.Volume,
+            timestamp: latestBar.Timestamp,
+          };
+        }
+      } catch (iexError) {
+        console.log(`IEX limit-only failed: ${iexError.message}`);
       }
 
-      console.log(`IEX feed returned ${iexBarArray.length} bars for ${symbol}`);
-
-      if (iexBarArray.length === 0) {
-        throw new Error(`No bar data found for ${symbol} (tried both SIP and IEX feeds)`);
+      // Approach 2: Try snapshot API (free tier)
+      try {
+        const snapshot = await this.client.getSnapshot(symbol);
+        if (snapshot && snapshot.dailyBar) {
+          console.log(`✓ Using snapshot daily bar for ${symbol}`);
+          return {
+            symbol,
+            open: snapshot.dailyBar.OpenPrice || snapshot.dailyBar.o,
+            high: snapshot.dailyBar.HighPrice || snapshot.dailyBar.h,
+            low: snapshot.dailyBar.LowPrice || snapshot.dailyBar.l,
+            close: snapshot.dailyBar.ClosePrice || snapshot.dailyBar.c,
+            volume: snapshot.dailyBar.Volume || snapshot.dailyBar.v,
+            timestamp: snapshot.dailyBar.Timestamp || snapshot.dailyBar.t,
+          };
+        }
+      } catch (snapshotError) {
+        console.log(`Snapshot failed: ${snapshotError.message}`);
       }
 
-      // Return the most recent bar (first in array, sorted descending)
-      const latestBar = iexBarArray[0];
-      return {
-        symbol,
-        open: latestBar.OpenPrice,
-        high: latestBar.HighPrice,
-        low: latestBar.LowPrice,
-        close: latestBar.ClosePrice,
-        volume: latestBar.Volume,
-        timestamp: latestBar.Timestamp,
-      };
+      // If all approaches failed
+      throw new Error(`No bar data found for ${symbol} (tried SIP, IEX bars, and snapshot)`);
     } catch (error) {
       console.error(`Error getting bar data for ${symbol}:`, error);
       throw error;
