@@ -95,6 +95,30 @@ Choose your operating system:
 - **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
 - **Alpha Vantage API Key** (Optional): Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
 
+### 📊 API Tier Information
+
+**Alpaca Market Data Tiers:**
+
+✅ **FREE TIER (IEX Feed)**
+- ✅ **Fast Scan (Price & Volume)** - Works perfectly with free tier
+- ✅ **Scanner** - All price/volume/technical analysis works
+- ✅ **Position Monitoring** - Full 24/7 monitoring
+- ✅ **Trading** - Full order execution
+- ✅ **Account Management** - All features available
+- ℹ️ Uses IEX exchange data only (still highly accurate)
+
+💰 **PAID TIER (SIP Feed - $9-99/month)**
+- All free tier features PLUS:
+- ✅ Consolidated data from ALL exchanges
+- ✅ Historical date range queries
+- ✅ Slightly more comprehensive market coverage
+
+**Alpha Vantage Tiers:**
+- ✅ **Free**: 25 API calls/day, 5 calls/minute (sufficient for testing)
+- 💰 **Premium**: 150-1200 calls/day (required for serious fundamental analysis & backtesting)
+
+**Recommendation:** Start with **100% FREE** - Free Alpaca tier + optional free Alpha Vantage tier is perfect for learning and testing strategies!
+
 ### Complete Installation (Copy/Paste)
 
 ```bash
@@ -190,6 +214,30 @@ sudo chown -R $(whoami) /usr/local/lib/node_modules
 - **Visual Studio Build Tools**: Required for native module compilation
 - **Alpaca Account**: Free paper trading account from [Alpaca Markets](https://alpaca.markets/)
 - **Alpha Vantage API Key** (Optional): Get free key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+
+### 📊 API Tier Information
+
+**Alpaca Market Data Tiers:**
+
+✅ **FREE TIER (IEX Feed)**
+- ✅ **Fast Scan (Price & Volume)** - Works perfectly with free tier
+- ✅ **Scanner** - All price/volume/technical analysis works
+- ✅ **Position Monitoring** - Full 24/7 monitoring
+- ✅ **Trading** - Full order execution
+- ✅ **Account Management** - All features available
+- ℹ️ Uses IEX exchange data only (still highly accurate)
+
+💰 **PAID TIER (SIP Feed - $9-99/month)**
+- All free tier features PLUS:
+- ✅ Consolidated data from ALL exchanges
+- ✅ Historical date range queries
+- ✅ Slightly more comprehensive market coverage
+
+**Alpha Vantage Tiers:**
+- ✅ **Free**: 25 API calls/day, 5 calls/minute (sufficient for testing)
+- 💰 **Premium**: 150-1200 calls/day (required for serious fundamental analysis & backtesting)
+
+**Recommendation:** Start with **100% FREE** - Free Alpaca tier + optional free Alpha Vantage tier is perfect for learning and testing strategies!
 
 ### Installing Visual Studio Build Tools
 
