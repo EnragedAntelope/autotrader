@@ -419,7 +419,7 @@ function ActivePositions() {
       )}
 
       {/* Edit Position Dialog */}
-      <Dialog open={!!editDialog.position} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
+      <Dialog open={!!editDialog.position} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth disableRestoreFocus>
         <DialogTitle>
           Edit Position: {editDialog.position?.symbol}
         </DialogTitle>

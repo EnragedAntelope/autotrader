@@ -659,6 +659,7 @@ class ScannerService {
         return null;
       }
 
+      const changePercent = ((bar.close - bar.open) / bar.open) * 100;
       const stockData = {
         symbol,
         price: (quote && quote.price) || bar.close, // Use quote price if available, otherwise use bar close
@@ -668,7 +669,8 @@ class ScannerService {
         low: bar.low,
         close: bar.close,
         dayChange: bar.close - bar.open,
-        dayChangePercent: ((bar.close - bar.open) / bar.open) * 100,
+        dayChangePercent: changePercent,
+        changePercent: changePercent, // Alias for UI compatibility
       };
 
       // 2. Get fundamentals if needed (with caching)

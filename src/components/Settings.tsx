@@ -551,7 +551,7 @@ function Settings() {
       </Paper>
 
       {/* Live Mode Confirmation Dialog */}
-      <Dialog open={confirmDialogOpen} onClose={handleCancelLiveMode}>
+      <Dialog open={confirmDialogOpen} onClose={handleCancelLiveMode} disableRestoreFocus>
         <DialogTitle>⚠️ WARNING: Switch to Live Trading?</DialogTitle>
         <DialogContent>
           <DialogContentText>

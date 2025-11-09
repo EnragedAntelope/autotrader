@@ -344,7 +344,7 @@ function WatchlistManager() {
       </Grid>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth disableRestoreFocus>
         <DialogTitle>
           {editingWatchlist ? 'Edit Watchlist' : 'Create New Watchlist'}
         </DialogTitle>
