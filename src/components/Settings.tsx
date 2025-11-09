@@ -449,6 +449,20 @@ function Settings() {
           )}
         </Box>
 
+        {updateInfo && updateInfo.error && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              ℹ️ Update Check Result
+            </Typography>
+            <Typography variant="body2">
+              {updateInfo.error}
+            </Typography>
+            <Typography variant="caption" color="textSecondary" display="block" sx={{ mt: 1 }}>
+              Current version: {updateInfo.currentVersion}
+            </Typography>
+          </Alert>
+        )}
+
         {updateInfo && updateInfo.updateAvailable && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
