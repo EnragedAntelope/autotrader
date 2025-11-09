@@ -708,7 +708,7 @@ function ScreenerBuilder() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="lg" fullWidth disableRestoreFocus>
         <DialogTitle>
           {editingProfile ? 'Edit Profile' : 'Create New Profile'}
         </DialogTitle>
@@ -929,6 +929,7 @@ function ScreenerBuilder() {
         onClose={handleCancelTest}
         maxWidth="sm"
         fullWidth
+        disableRestoreFocus
       >
         <DialogTitle>API Call Estimate</DialogTitle>
         <DialogContent>

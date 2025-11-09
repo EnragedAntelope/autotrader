@@ -415,6 +415,7 @@ function ScanResults() {
         onClose={() => setDetailDialog({ open: false, result: null })}
         maxWidth="md"
         fullWidth
+        disableRestoreFocus
       >
         <DialogTitle>Scan Result Details</DialogTitle>
         <DialogContent>
@@ -607,7 +608,7 @@ function ScanResults() {
       </Dialog>
 
       {/* Trade Dialog */}
-      <Dialog open={tradeDialog.open} onClose={() => setTradeDialog({ open: false, result: null, quantity: 100 })}>
+      <Dialog open={tradeDialog.open} onClose={() => setTradeDialog({ open: false, result: null, quantity: 100 })} disableRestoreFocus>
         <DialogTitle>Execute Trade</DialogTitle>
         <DialogContent>
           {tradeDialog.result && (
