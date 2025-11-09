@@ -818,6 +818,20 @@ function setupIPC() {
     }
   });
 
+  // Update Checker
+  ipcMain.handle('check-for-updates', async () => {
+    try {
+      const UpdateChecker = require('./services/updateChecker');
+      return await UpdateChecker.checkForUpdates();
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      return {
+        updateAvailable: false,
+        error: error.message
+      };
+    }
+  });
+
   // Statistics
   ipcMain.handle('get-daily-stats', (event, date) => {
     const tradingMode = process.env.TRADING_MODE || 'paper';

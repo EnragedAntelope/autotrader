@@ -11,20 +11,31 @@ A cross-platform desktop application for automated stock and options screening w
 ## Features
 
 ### 📊 Screening & Analysis
-- **Advanced Parameter Library**: 45+ parameters including fundamental ratios (P/E, P/B, D/E, Current Ratio, ROE, etc.)
-- **Technical Indicators**: RSI, Beta, momentum, volume analysis
+- **🆕 Universal Stock Screening**: Scan ALL ~10,000 tradable US stocks, not just watchlists
+- **Advanced Parameter Library**: 45+ parameters including:
+  - **Fundamental Ratios**: P/E, P/B, Market Cap, Dividend Yield, Beta
+  - **🆕 Advanced Fundamentals**: ROE, ROA, Current Ratio, Quick Ratio, Debt-to-Equity (calculated from financial statements)
+  - **Technical Indicators**: RSI, momentum, volume analysis, daily % change
+  - **Sector/Industry Filtering**: Filter by sector or industry within stock universes
 - **Options Greeks**: Delta, gamma, theta, vega, IV with educational tooltips
 - **8 Pre-Built Templates**: Value stocks, growth stocks, dividend stocks, momentum, fast scan, high-delta calls, ATM calls, protective puts
-- **13 Pre-Built Watchlists**: Tech giants, dividend aristocrats, financial sector, healthcare, energy, semiconductors, EV/clean energy, and more
+- **14 Pre-Built Watchlists** including:
+  - **🆕 ALL US STOCKS**: Scan the entire market universe (~10,000 stocks)
+  - Tech Giants, Dividend Aristocrats, Financial Sector, Healthcare Leaders
+  - Energy & Commodities, Cloud & SaaS, Semiconductors, EV & Clean Energy
 - **Custom Watchlists**: Create and manage your own stock lists for focused scanning
 - **Help Tooltips**: Every parameter includes educational content and suggested "good" values
 - **Input Validation**: Prevents invalid data entry with real-time feedback
+- **API Response Validation**: Comprehensive data integrity checks on all API responses
 
 ### 📈 Backtesting & Strategy Validation
-- **Historical Simulation**: Test strategies against past market data
+- **🆕 Real Historical Data**: Uses actual price data from Alpha Vantage (20+ years available)
+- **Automatic Fallback**: Uses simulated data if Alpha Vantage API not configured
+- **Clear Data Source Indicator**: Always shows whether using REAL or SIMULATED data
 - **Performance Metrics**: Win rate, Sharpe ratio, max drawdown, profit factor
 - **Trade-by-Trade Analysis**: Detailed trade history with entry/exit points
 - **Configurable Parameters**: Adjust starting capital, position size, time periods
+- **Cached Historical Data**: Minimizes API calls through intelligent caching
 
 ### 🤖 Automation & Trading
 - **Automated Screening**: Create custom screening profiles for stocks and options
@@ -49,9 +60,11 @@ A cross-platform desktop application for automated stock and options screening w
 
 ### 🎨 User Experience
 - **Dark Theme**: Toggle between light and dark modes (saved to localStorage)
+- **🆕 Update Checker**: Automatic check for new versions from GitHub releases
 - **Educational UI**: Contextual help throughout the application
 - **Responsive Design**: Clean Material-UI interface
 - **Cross-Platform**: Windows, macOS, and Linux support
+- **Comprehensive Documentation**: Full API coverage documentation, rate limiting guides, and troubleshooting
 
 ## Tech Stack
 

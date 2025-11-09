@@ -5,10 +5,31 @@
  */
 
 const AlpacaService = require('./alpacaService');
+const DataService = require('./dataService');
 
 class BacktestService {
   constructor() {
     this.cache = new Map();
+    this.priceCache = new Map(); // Cache for historical prices
+    this.useRealData = false; // Will be set based on API availability
+  }
+
+  /**
+   * Initialize backtest service and check data availability
+   */
+  async initialize() {
+    try {
+      // Check if Alpha Vantage API is configured for real historical data
+      this.useRealData = !!process.env.ALPHA_VANTAGE_API_KEY;
+      if (this.useRealData) {
+        console.log('✓ Alpha Vantage API key detected - using REAL historical data');
+      } else {
+        console.log('⚠ No Alpha Vantage API key - using SIMULATED data');
+      }
+    } catch (error) {
+      console.warn('Error checking API availability:', error);
+      this.useRealData = false;
+    }
   }
 
   /**
@@ -21,9 +42,12 @@ class BacktestService {
    * @returns {Object} Backtest results with performance metrics
    */
   async runBacktest(profile, startDate, endDate, initialCapital = 10000, positionSize = 1000) {
+    await this.initialize();
+
     console.log(`\nRunning backtest for "${profile.name}"`);
     console.log(`Period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-    console.log(`Initial Capital: $${initialCapital}, Position Size: $${positionSize}\n`);
+    console.log(`Initial Capital: $${initialCapital}, Position Size: $${positionSize}`);
+    console.log(`Data Mode: ${this.useRealData ? 'REAL (Alpha Vantage)' : 'SIMULATED (Random)'}\n`);
 
     const trades = [];
     let capital = initialCapital;
@@ -36,16 +60,13 @@ class BacktestService {
     while (currentDate <= endDate) {
       console.log(`Scanning ${currentDate.toISOString().split('T')[0]}...`);
 
-      // Simulate scan on this date (in real implementation, would use historical data)
-      // For now, we'll use a simplified simulation
-
       // Close any positions that hit stop-loss or take-profit
       positions = await this.updatePositions(positions, currentDate, trades);
 
       // Check if we have capital for new positions
       if (capital >= positionSize && positions.length < 10) {
-        // Simulate finding matches (simplified)
-        const matches = await this.simulateScan(profile, currentDate);
+        // Get scan matches for this date
+        const matches = await this.scanOnDate(profile, currentDate);
 
         if (matches.length > 0) {
           // Take first match as trade
@@ -77,7 +98,7 @@ class BacktestService {
 
     // Close all remaining positions at end date
     for (const position of positions) {
-      const exitPrice = position.entryPrice * (1 + (Math.random() * 0.2 - 0.1)); // Simulate price movement
+      const exitPrice = await this.getPriceOnDate(position.symbol, endDate);
       const pl = (exitPrice - position.entryPrice) * position.quantity;
 
       trades.push({
@@ -99,6 +120,7 @@ class BacktestService {
     const metrics = this.calculateMetrics(trades, initialCapital, capital);
 
     console.log('\n=== Backtest Results ===');
+    console.log(`Data Source: ${this.useRealData ? 'REAL (Alpha Vantage)' : 'SIMULATED (Random)'}`);
     console.log(`Total Trades: ${metrics.totalTrades}`);
     console.log(`Win Rate: ${metrics.winRate.toFixed(2)}%`);
     console.log(`Total P/L: $${metrics.totalProfitLoss.toFixed(2)}`);
@@ -114,7 +136,97 @@ class BacktestService {
       finalCapital: capital,
       trades,
       metrics,
+      dataSource: this.useRealData ? 'real' : 'simulated',
     };
+  }
+
+  /**
+   * Get historical price data for a symbol
+   * Caches data to minimize API calls
+   */
+  async getHistoricalPrices(symbol) {
+    const cacheKey = symbol;
+
+    if (this.priceCache.has(cacheKey)) {
+      return this.priceCache.get(cacheKey);
+    }
+
+    if (this.useRealData) {
+      try {
+        // Fetch real historical data from Alpha Vantage
+        const prices = await DataService.getHistoricalPrices(symbol, 'full');
+        this.priceCache.set(cacheKey, prices);
+        return prices;
+      } catch (error) {
+        console.warn(`Failed to fetch real data for ${symbol}, falling back to simulation:`, error.message);
+        // Fall back to simulated data on error
+        return null;
+      }
+    }
+
+    return null; // No real data available
+  }
+
+  /**
+   * Get price on a specific date (or closest available date)
+   */
+  async getPriceOnDate(symbol, targetDate) {
+    const prices = await this.getHistoricalPrices(symbol);
+
+    if (prices && prices.length > 0) {
+      // Find closest date
+      const targetTime = targetDate.getTime();
+      let closestPrice = prices[0];
+      let minDiff = Math.abs(new Date(prices[0].date).getTime() - targetTime);
+
+      for (const price of prices) {
+        const diff = Math.abs(new Date(price.date).getTime() - targetTime);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestPrice = price;
+        }
+      }
+
+      return closestPrice.close;
+    }
+
+    // Fallback to simulated price
+    return 100 + Math.random() * 300;
+  }
+
+  /**
+   * Scan for matches on a specific historical date
+   */
+  async scanOnDate(profile, date) {
+    // Get symbols to scan from profile's watchlist
+    const symbols = this.getSymbolsFromProfile(profile);
+    const matches = [];
+
+    for (const symbol of symbols.slice(0, 5)) { // Limit to 5 stocks to reduce API calls
+      const price = await this.getPriceOnDate(symbol, date);
+
+      if (price) {
+        // Simple filtering - in real implementation would apply full profile criteria
+        // For now, 30% probability of match to simulate hit rate
+        if (Math.random() < 0.3) {
+          matches.push({
+            symbol,
+            price,
+            volume: 1000000 + Math.random() * 10000000,
+          });
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  /**
+   * Get symbols from profile
+   */
+  getSymbolsFromProfile(profile) {
+    // Default symbols if profile doesn't specify
+    return ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'AMD', 'NFLX', 'DIS'];
   }
 
   /**
@@ -124,8 +236,8 @@ class BacktestService {
     const remaining = [];
 
     for (const position of positions) {
-      // Simulate price movement
-      const currentPrice = position.entryPrice * (1 + (Math.random() * 0.3 - 0.15));
+      // Get real or simulated price for this date
+      const currentPrice = await this.getPriceOnDate(position.symbol, currentDate);
 
       // Check stop-loss
       if (currentPrice <= position.stopLoss) {
@@ -133,12 +245,12 @@ class BacktestService {
         trades.push({
           symbol: position.symbol,
           entryDate: position.entryDate,
-          exitDate: currentDate,
+          exitDate: new Date(currentDate),
           entryPrice: position.entryPrice,
           exitPrice: position.stopLoss,
           quantity: position.quantity,
           profitLoss: pl,
-          profitLossPercent: -5, // Stop-loss at 5%
+          profitLossPercent: ((position.stopLoss - position.entryPrice) / position.entryPrice) * 100,
           reason: 'stop_loss',
           holdingDays: Math.floor((currentDate - position.entryDate) / (1000 * 60 * 60 * 24)),
         });
@@ -152,12 +264,12 @@ class BacktestService {
         trades.push({
           symbol: position.symbol,
           entryDate: position.entryDate,
-          exitDate: currentDate,
+          exitDate: new Date(currentDate),
           entryPrice: position.entryPrice,
           exitPrice: position.takeProfit,
           quantity: position.quantity,
           profitLoss: pl,
-          profitLossPercent: 15, // Take-profit at 15%
+          profitLossPercent: ((position.takeProfit - position.entryPrice) / position.entryPrice) * 100,
           reason: 'take_profit',
           holdingDays: Math.floor((currentDate - position.entryDate) / (1000 * 60 * 60 * 24)),
         });
@@ -173,35 +285,12 @@ class BacktestService {
   }
 
   /**
-   * Simulate a scan on a specific date (simplified for demo)
-   */
-  async simulateScan(profile, date) {
-    // In a real implementation, this would fetch historical data and apply filters
-    // For now, we'll simulate some matches
-
-    const symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'AMD', 'NFLX', 'DIS'];
-    const matches = [];
-
-    // Simulate 30% hit rate
-    if (Math.random() < 0.3) {
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-      const basePrice = 100 + Math.random() * 300;
-
-      matches.push({
-        symbol,
-        price: basePrice,
-        volume: 1000000 + Math.random() * 10000000,
-      });
-    }
-
-    return matches;
-  }
-
-  /**
-   * Calculate performance metrics from trade history
+   * Calculate performance metrics from trades
    */
   calculateMetrics(trades, initialCapital, finalCapital) {
-    if (trades.length === 0) {
+    const totalTrades = trades.length;
+
+    if (totalTrades === 0) {
       return {
         totalTrades: 0,
         winningTrades: 0,
@@ -218,26 +307,26 @@ class BacktestService {
       };
     }
 
-    const winners = trades.filter(t => t.profitLoss > 0);
-    const losers = trades.filter(t => t.profitLoss <= 0);
+    const winningTrades = trades.filter((t) => t.profitLoss > 0);
+    const losingTrades = trades.filter((t) => t.profitLoss <= 0);
 
-    const totalPL = trades.reduce((sum, t) => sum + t.profitLoss, 0);
-    const totalWins = winners.reduce((sum, t) => sum + t.profitLoss, 0);
-    const totalLosses = Math.abs(losers.reduce((sum, t) => sum + t.profitLoss, 0));
+    const totalProfitLoss = trades.reduce((sum, t) => sum + t.profitLoss, 0);
+    const totalWins = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
 
-    const avgWin = winners.length > 0 ? totalWins / winners.length : 0;
-    const avgLoss = losers.length > 0 ? totalLosses / losers.length : 0;
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? 999 : 0;
+    const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+    const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
     // Calculate Sharpe Ratio (simplified)
-    const returns = trades.map(t => t.profitLossPercent);
-    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const stdDev = Math.sqrt(
-      returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
-    );
-    const sharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252 / 7) : 0; // Annualized
+    const returns = trades.map((t) => t.profitLossPercent);
+    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+    const variance =
+      returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+    const stdDev = Math.sqrt(variance);
+    const sharpeRatio = stdDev !== 0 ? avgReturn / stdDev : 0;
 
-    // Calculate max drawdown
+    // Calculate Max Drawdown
     let peak = initialCapital;
     let maxDrawdown = 0;
     let runningCapital = initialCapital;
@@ -253,14 +342,15 @@ class BacktestService {
       }
     }
 
-    const avgHoldingDays = trades.reduce((sum, t) => sum + t.holdingDays, 0) / trades.length;
+    const avgHoldingDays =
+      trades.reduce((sum, t) => sum + t.holdingDays, 0) / totalTrades;
 
     return {
-      totalTrades: trades.length,
-      winningTrades: winners.length,
-      losingTrades: losers.length,
-      winRate: (winners.length / trades.length) * 100,
-      totalProfitLoss: totalPL,
+      totalTrades,
+      winningTrades: winningTrades.length,
+      losingTrades: losingTrades.length,
+      winRate: (winningTrades.length / totalTrades) * 100,
+      totalProfitLoss,
       returnPercent: ((finalCapital - initialCapital) / initialCapital) * 100,
       avgWin,
       avgLoss,

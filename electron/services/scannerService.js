@@ -672,7 +672,7 @@ class ScannerService {
 
       // 2. Get fundamentals if needed (with caching)
       if (needsFundamentals) {
-        const fundamentals = await this.getCachedFundamentals(symbol, db);
+        const fundamentals = await this.getCachedFundamentals(symbol, db, parameters);
         if (fundamentals) {
           Object.assign(stockData, fundamentals);
         }
@@ -760,15 +760,27 @@ class ScannerService {
   /**
    * Get cached fundamentals or fetch if not cached
    */
-  async getCachedFundamentals(symbol, db) {
+  async getCachedFundamentals(symbol, db, parameters = {}) {
+    // Check if advanced fundamentals are needed (ROE, ROA, Current Ratio, etc.)
+    const needsAdvanced = !!(
+      parameters.minCurrentRatio ||
+      parameters.maxCurrentRatio ||
+      parameters.minQuickRatio ||
+      parameters.maxDebtToEquity ||
+      parameters.minROE ||
+      parameters.minROA ||
+      parameters.currentRatioMin // Legacy parameter
+    );
+
     // Check cache first (24 hour TTL for fundamentals)
+    const cacheType = needsAdvanced ? 'fundamentals_advanced' : 'fundamentals';
     const cached = db
       .prepare(
         `SELECT data, cached_at FROM market_data_cache
-         WHERE symbol = ? AND data_type = 'fundamentals'
+         WHERE symbol = ? AND data_type = ?
          AND expires_at > datetime('now')`
       )
-      .get(symbol);
+      .get(symbol, cacheType);
 
     if (cached) {
       return JSON.parse(cached.data);
@@ -776,14 +788,28 @@ class ScannerService {
 
     // Fetch fresh data
     try {
-      const fundamentals = await getDataService().getFundamentals(symbol);
+      let fundamentals;
+
+      if (needsAdvanced) {
+        // Fetch both basic and advanced fundamentals
+        const [basic, advanced] = await Promise.all([
+          getDataService().getFundamentals(symbol),
+          getDataService().getAdvancedFundamentals(symbol)
+        ]);
+
+        // Merge both datasets
+        fundamentals = { ...basic, ...advanced };
+      } else {
+        // Just fetch basic fundamentals
+        fundamentals = await getDataService().getFundamentals(symbol);
+      }
 
       // Cache for 24 hours
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       db.prepare(
         `INSERT OR REPLACE INTO market_data_cache (symbol, data_type, data, expires_at)
-         VALUES (?, 'fundamentals', ?, ?)`
-      ).run(symbol, JSON.stringify(fundamentals), expiresAt);
+         VALUES (?, ?, ?, ?)`
+      ).run(symbol, cacheType, JSON.stringify(fundamentals), expiresAt);
 
       return fundamentals;
     } catch (error) {
